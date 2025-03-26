@@ -1,5 +1,5 @@
 .nodeInfo {
-  position: fixed;
+  position: absolute;
   right: 20;
   top: 80px;
   width: 300px;
