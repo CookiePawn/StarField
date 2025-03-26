@@ -303,7 +303,7 @@ const FlowPage = () => {
         // 노드 배경
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 30 * scale, 0, Math.PI * 2);
+        ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
         ctx.fill();
 
         // 노드 테두리
