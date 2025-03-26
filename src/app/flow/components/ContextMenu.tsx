@@ -47,6 +47,7 @@ export const ContextMenu_Node: React.FC<{
                 boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
                 zIndex: 1000,
             }}
+            onContextMenu={(e) => e.preventDefault()}
         >
             <div
                 style={{
@@ -110,6 +111,7 @@ export const ContextMenu_Canvas: React.FC<{
           boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
           zIndex: 1000,
         }}
+        onContextMenu={(e) => e.preventDefault()}
       >
         <div
           style={{
