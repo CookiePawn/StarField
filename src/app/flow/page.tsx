@@ -148,7 +148,7 @@ const FlowPage = () => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = (/*e: MouseEvent*/) => {
       setIsDragging(false);
       setDraggingNode(null);
       canvas.style.cursor = isGrabbing ? 'grab' : 'default';
