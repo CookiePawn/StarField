@@ -1,18 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { EditorSidebar, ZoomSidebar, Header } from './components';
-interface Node {
-  id: number;
-  x: number;
-  y: number;
-  label: string;
-}
+import { EditorSidebar, ZoomSidebar, Header, ContextMenu_Node, ContextMenu_Canvas } from './components';
+import { Node, NodeContextMenu, Link, CanvasContextMenu } from './type'
 
-interface Link {
-  from: number;
-  to: number;
-}
 
 const FlowPage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,6 +15,20 @@ const FlowPage = () => {
   const [links, setLinks] = useState<Link[]>([]);
   const [draggingNode, setDraggingNode] = useState<number | null>(null);
   const [selectedNode, setSelectedNode] = useState<number | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectingFrom, setConnectingFrom] = useState<number | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [contextMenu, setContextMenu] = useState<NodeContextMenu>({
+    visible: false,
+    x: 0,
+    y: 0,
+    nodeId: null
+  });
+  const [canvasContextMenu, setCanvasContextMenu] = useState<CanvasContextMenu>({
+    visible: false,
+    x: 0,
+    y: 0
+  });
   const nodeIdRef = useRef(1);
   const dragStart = useRef({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
@@ -59,6 +64,39 @@ const FlowPage = () => {
 
     // 마우스 이벤트 처리
     const handleMouseDown = (e: MouseEvent) => {
+      // 우클릭 메뉴 닫기
+      setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+      setCanvasContextMenu({ visible: false, x: 0, y: 0 });
+
+      // 우클릭(mouse button 2)일 때는 노드 메뉴 처리
+      if (e.button === 2) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - offset.x) / scale;
+        const y = (e.clientY - rect.top - offset.y) / scale;
+
+        const clickedNode = nodes.find(node => {
+          const dx = node.x - x;
+          const dy = node.y - y;
+          return Math.sqrt(dx * dx + dy * dy) <= 30;
+        });
+
+        if (clickedNode) {
+          setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            nodeId: clickedNode.id
+          });
+        } else {
+          setCanvasContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY
+          });
+        }
+        return;
+      }
+
       if (!isGrabbing) {
         // 노드 드래그 시작
         const rect = canvas.getBoundingClientRect();
@@ -67,28 +105,17 @@ const FlowPage = () => {
 
         // 클릭한 위치에 노드가 있는지 확인
         const clickedNode = nodes.find(node => {
+          if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
           const dx = node.x - x;
           const dy = node.y - y;
           return Math.sqrt(dx * dx + dy * dy) <= 30;
         });
 
         if (clickedNode) {
+          setIsDragging(true);
           setDraggingNode(clickedNode.id);
-          if (selectedNode === null) {
-            setSelectedNode(clickedNode.id);
-          } else {
-            setLinks([...links, { from: selectedNode, to: clickedNode.id }]);
-            setSelectedNode(null);
-          }
+          setSelectedNode(clickedNode.id);
         } else {
-          // 새 노드 추가
-          const newNode = {
-            id: nodeIdRef.current++,
-            x,
-            y,
-            label: `Node ${nodeIdRef.current - 1}`,
-          };
-          setNodes([...nodes, newNode]);
           setSelectedNode(null);
         }
       } else {
@@ -102,29 +129,78 @@ const FlowPage = () => {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
-        if (draggingNode !== null) {
-          // 노드 드래그
-          const rect = canvas.getBoundingClientRect();
-          const newX = (e.clientX - rect.left - offset.x) / scale;
-          const newY = (e.clientY - rect.top - offset.y) / scale;
-          setNodes(nodes.map(node =>
-            node.id === draggingNode ? { ...node, x: newX, y: newY } : node
-          ));
+      if (isDragging && draggingNode !== null) {
+        // 노드 드래그
+        const rect = canvas.getBoundingClientRect();
+        const newX = (e.clientX - rect.left - offset.x) / scale;
+        const newY = (e.clientY - rect.top - offset.y) / scale;
+        setNodes(nodes.map(node =>
+          node.id === draggingNode ? { ...node, x: newX, y: newY } : node
+        ));
+      } else if (isDragging && isGrabbing) {
+        // 화면 드래그
+        setOffset({
+          x: e.clientX - dragStart.current.x,
+          y: e.clientY - dragStart.current.y
+        });
+      }
+      // 마우스 위치 업데이트
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      setIsDragging(false);
+      setDraggingNode(null);
+      canvas.style.cursor = isGrabbing ? 'grab' : 'default';
+    };
+
+    // 노드 클릭 이벤트 처리
+    const handleNodeClick = (nodeId: number) => {
+      if (!isDragging) {  // 드래그 중이 아닐 때만 클릭 이벤트 처리
+        if (!isConnecting) {
+          // 연결 시작
+          setIsConnecting(true);
+          setConnectingFrom(nodeId);
+          setSelectedNode(nodeId);
         } else {
-          // 화면 드래그
-          setOffset({
-            x: e.clientX - dragStart.current.x,
-            y: e.clientY - dragStart.current.y
-          });
+          // 연결 완료
+          if (nodeId !== connectingFrom && connectingFrom !== null) {
+            // 이미 링크가 존재하는지 확인
+            const linkExists = links.some(link => 
+              (link.from === connectingFrom && link.to === nodeId) ||
+              (link.from === nodeId && link.to === connectingFrom)
+            );
+
+            if (!linkExists) {
+              setLinks([...links, { from: connectingFrom, to: nodeId }]);
+            } else {
+              alert('이미 연결되어있습니다.');
+            }
+          }
+          setIsConnecting(false);
+          setConnectingFrom(null);
+          setSelectedNode(null);
         }
       }
     };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setDraggingNode(null);
-      canvas.style.cursor = isGrabbing ? 'grab' : 'default';
+    // 노드 더블클릭 이벤트 처리
+    const handleNodeDoubleClick = (e: MouseEvent) => {
+      if (!isDragging) {  // 드래그 중이 아닐 때만 더블클릭 이벤트 처리
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - offset.x) / scale;
+        const y = (e.clientY - rect.top - offset.y) / scale;
+
+        const clickedNode = nodes.find(node => {
+          const dx = node.x - x;
+          const dy = node.y - y;
+          return Math.sqrt(dx * dx + dy * dy) <= 30;
+        });
+
+        if (clickedNode) {
+          handleNodeClick(clickedNode.id);
+        }
+      }
     };
 
     // 휠 이벤트 처리
@@ -155,6 +231,7 @@ const FlowPage = () => {
     canvas.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('dblclick', handleNodeDoubleClick);
     canvas.addEventListener('wheel', handleWheel, { passive: false });
 
     // 캔버스 크기를 화면 크기로 설정
@@ -205,6 +282,22 @@ const FlowPage = () => {
         }
       });
 
+      // 연결 중인 임시 선 그리기
+      if (isConnecting && connectingFrom !== null) {
+        const fromNode = nodes.find(n => n.id === connectingFrom);
+        if (fromNode) {
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
+          const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
+
+          ctx.beginPath();
+          ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
+          ctx.lineTo(mouseX * scale + offset.x, mouseY * scale + offset.y);
+          ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+          ctx.stroke();
+        }
+      }
+
       // 노드 그리기
       nodes.forEach(node => {
         // 노드 배경
@@ -215,8 +308,8 @@ const FlowPage = () => {
 
         // 노드 테두리
         if (selectedNode === node.id) {
-          ctx.strokeStyle = 'red';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'darkgreen';
+          ctx.lineWidth = 4;
           ctx.stroke();
         }
 
@@ -238,9 +331,10 @@ const FlowPage = () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('dblclick', handleNodeDoubleClick);
       canvas.removeEventListener('wheel', handleWheel);
     };
-  }, [isGrabbing, isDragging, offset, scale, nodes, links, selectedNode, draggingNode, isMounted]);
+  }, [isGrabbing, isDragging, offset, scale, nodes, links, selectedNode, draggingNode, isConnecting, connectingFrom, mousePosition, isMounted]);
 
   if (!isMounted) {
     return null;
@@ -274,8 +368,28 @@ const FlowPage = () => {
           height: '100%',
           backgroundColor: '#000000',
         }}
+        onContextMenu={(e) => e.preventDefault()}
       />
-    </div >
+      {contextMenu.visible && contextMenu.nodeId !== null && (
+        <ContextMenu_Node
+          contextMenu={contextMenu}
+          setContextMenu={setContextMenu}
+          nodes={nodes}
+          setNodes={setNodes}
+          links={links}
+          setLinks={setLinks}
+        />
+      )}
+      {canvasContextMenu.visible && (
+        <ContextMenu_Canvas
+          contextMenu={canvasContextMenu}
+          setContextMenu={setCanvasContextMenu}
+          nodes={nodes}
+          setNodes={setNodes}
+          nodeIdRef={nodeIdRef}
+        />
+      )}
+    </div>
   );
 };
 
