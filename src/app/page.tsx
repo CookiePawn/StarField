@@ -17,14 +17,22 @@ export default function MindMap() {
   const [isPanning, setIsPanning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [panOffset, setPanOffset] = useState({ 
-    x: window.innerWidth / 2 - 8000,  // 5000의 중앙으로 이동
-    y: window.innerHeight / 2 - 8000  
+    x: 0,
+    y: 0
   });
   const panStart = useRef({ x: 0, y: 0 });
 
   /** @description 줌 비율 및 컨테이너 참조 */
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  /** 초기 화면 위치 설정 */
+  useEffect(() => {
+    setPanOffset({
+      x: window.innerWidth / 2 - 8000,
+      y: window.innerHeight / 2 - 8000
+    });
+  }, []);
 
   /** 스페이스바 눌렀을 때 화면 이동 모드 활성화 */
   useEffect(() => {

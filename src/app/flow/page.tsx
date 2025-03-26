@@ -26,8 +26,15 @@ const FlowPage = () => {
   const [selectedNode, setSelectedNode] = useState<number | null>(null);
   const nodeIdRef = useRef(1);
   const dragStart = useRef({ x: 0, y: 0 });
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -233,7 +240,11 @@ const FlowPage = () => {
       window.removeEventListener('mouseup', handleMouseUp);
       canvas.removeEventListener('wheel', handleWheel);
     };
-  }, [isGrabbing, isDragging, offset, scale, nodes, links, selectedNode]);
+  }, [isGrabbing, isDragging, offset, scale, nodes, links, selectedNode, draggingNode, isMounted]);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div 
