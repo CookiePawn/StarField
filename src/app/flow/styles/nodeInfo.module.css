@@ -1,4 +1,5 @@
 .nodeInfo {
+  display: block;
   position: absolute;
   right: 20;
   top: 80px;
