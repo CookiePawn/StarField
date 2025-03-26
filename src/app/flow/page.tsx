@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { EditorSidebar, ZoomSidebar, Header, ContextMenu_Node, ContextMenu_Canvas } from './components';
+import { EditorSidebar, ZoomSidebar, Header, ContextMenu_Node, ContextMenu_Canvas, NodeInfo } from './components';
 import { Node, NodeContextMenu, Link, CanvasContextMenu } from './type'
 
 
@@ -77,7 +77,7 @@ const FlowPage = () => {
         const clickedNode = nodes.find(node => {
           const dx = node.x - x;
           const dy = node.y - y;
-          return Math.sqrt(dx * dx + dy * dy) <= 30;
+          return Math.sqrt(dx * dx + dy * dy) <= 50;
         });
 
         if (clickedNode) {
@@ -108,7 +108,7 @@ const FlowPage = () => {
           if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
           const dx = node.x - x;
           const dy = node.y - y;
-          return Math.sqrt(dx * dx + dy * dy) <= 30;
+          return Math.sqrt(dx * dx + dy * dy) <= 50;
         });
 
         if (clickedNode) {
@@ -194,7 +194,7 @@ const FlowPage = () => {
         const clickedNode = nodes.find(node => {
           const dx = node.x - x;
           const dy = node.y - y;
-          return Math.sqrt(dx * dx + dy * dy) <= 30;
+          return Math.sqrt(dx * dx + dy * dy) <= 50;
         });
 
         if (clickedNode) {
@@ -387,6 +387,14 @@ const FlowPage = () => {
           nodes={nodes}
           setNodes={setNodes}
           nodeIdRef={nodeIdRef}
+        />
+      )}  
+      {selectedNode && (
+        <NodeInfo 
+          selectedNode={selectedNode ? nodes.find(node => node.id === selectedNode) || null : null}
+          nodes={nodes}
+          links={links}
+          setSelectedNode={setSelectedNode}
         />
       )}
     </div>

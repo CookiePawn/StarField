@@ -1,0 +1,67 @@
+.nodeInfo {
+  position: fixed;
+  right: 20;
+  top: 80px;
+  width: 300px;
+  height: calc(100vh - 100px);
+  background-color: #2D2D2D;
+  padding: 20px;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  border-radius: 20px;
+}
+
+.nodeInfo h2 {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.infoSection {
+  margin-top: 20px;
+  padding: 15px 0px;
+  border-bottom: 1px solid #666;
+}
+
+.infoSection h3 {
+  margin: 0 0 10px 0;
+  color: #fff;
+  font-size: 16px;
+}
+
+.infoSection p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.infoSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.infoSection li {
+  padding: 5px 0;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+.infoSection li:last-child {
+  border-bottom: none;
+} 
+
+.closeButton {
+  width: calc(100% - 40px);
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background-color: #555;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.closeButton p {
+  color: #fff;
+}
