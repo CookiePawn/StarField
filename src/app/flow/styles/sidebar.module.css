@@ -1,0 +1,84 @@
+
+/*
+    Editor Sidebar
+*/
+.editorSidebar {
+    background-color: #2D2D2D;
+    position: absolute;
+    top: 80px;
+    left: 20px;
+    z-index: 1000;
+    border-radius: 100px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+
+.editorSidebarButton {
+    width: 45px;
+    height: 45px;
+    background-color: #000;
+    border-radius: 100px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.editorSidebarButton:hover {
+    background-color: #3D3D3D;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+.editorSidebarButton p {
+    font-size: 30px;
+    color: #ffffff;
+}
+
+
+
+/*
+    Zoom Sidebar
+*/
+.zoomSidebar {
+    background-color: #2D2D2D;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    border-radius: 100px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+
+.zoomSidebarButton {
+    width: 45px;
+    height: 45px;
+    background-color: #000;
+    border-radius: 100px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoomSidebarButton:hover {
+    background-color: #3D3D3D;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+.zoomSidebarButton p {
+    font-size: 30px;
+    color: #ffffff;
+}

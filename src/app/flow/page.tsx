@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-
+import { EditorSidebar, ZoomSidebar, Header } from './components';
 interface Node {
   id: number;
   x: number;
@@ -64,7 +64,7 @@ const FlowPage = () => {
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - offset.x) / scale;
         const y = (e.clientY - rect.top - offset.y) / scale;
-        
+
         // 클릭한 위치에 노드가 있는지 확인
         const clickedNode = nodes.find(node => {
           const dx = node.x - x;
@@ -131,7 +131,7 @@ const FlowPage = () => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -173,7 +173,7 @@ const FlowPage = () => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // 흰색 점 그리기
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#ededed';
       const dotSize = 1;
       const spacing = 50;
 
@@ -247,16 +247,23 @@ const FlowPage = () => {
   }
 
   return (
-    <div 
-      style={{ 
-        width: '100vw', 
-        height: '100vh', 
+    <div
+      style={{
+        width: '100vw',
+        height: '100vh',
         overflow: 'hidden',
-        position: 'fixed',
+        position: 'relative',
         top: 0,
         left: 0,
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
       }}
     >
+      <Header />
+      <EditorSidebar />
+      <ZoomSidebar scale={scale} setScale={setScale} />
       <canvas
         ref={canvasRef}
         style={{
@@ -268,7 +275,7 @@ const FlowPage = () => {
           backgroundColor: '#000000',
         }}
       />
-    </div>
+    </div >
   );
 };
 

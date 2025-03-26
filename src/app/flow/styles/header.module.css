@@ -1,0 +1,28 @@
+/*
+    Header
+*/
+.header {
+    width: 100vw;
+    height: 60px;
+    background-color: #2D2D2D;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    padding: 0 20px;
+    border-bottom: 2px solid #3D3D3D;
+    gap: 40px;
+}
+
+.header p {
+    font-size: 16px;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.header p:hover {
+    color: #767676;
+}
