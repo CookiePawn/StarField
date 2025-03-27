@@ -175,7 +175,7 @@ export const useCanvas = ({
 
         // 마우스/터치 이벤트 핸들러
         const handleStart = (e: MouseEvent | TouchEvent) => {
-            const point = 'touches' in e ? e.touches[0] : e;
+            const point = 'touches' in e && e.touches.length > 0 ? e.touches[0] : e as MouseEvent;
             dragStart.current = {
                 x: point.clientX - offset.x,
                 y: point.clientY - offset.y
@@ -215,7 +215,7 @@ export const useCanvas = ({
 
         const handleMove = (e: MouseEvent | TouchEvent) => {
             e.preventDefault();
-            const point = 'touches' in e ? e.touches[0] : e;
+            const point = 'touches' in e && e.touches.length > 0 ? e.touches[0] : e as MouseEvent;
             setMousePosition({ x: point.clientX, y: point.clientY });
 
             if (isDraggingNode && draggingNodeId !== null) {
@@ -252,7 +252,7 @@ export const useCanvas = ({
         };
 
         const handleDoubleClick = (e: MouseEvent | TouchEvent) => {
-            const point = 'touches' in e ? e.touches[0] : e;
+            const point = 'touches' in e && e.touches.length > 0 ? e.touches[0] : e as MouseEvent;
             const clickedNode = findClickedNode(point.clientX, point.clientY);
 
             if (clickedNode) {
