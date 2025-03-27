@@ -48,15 +48,21 @@ const FlowPage = () => {
 
         // 캔버스 크기 설정
         const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            const dpr = window.devicePixelRatio;
+            const rect = canvas.getBoundingClientRect();
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            
+            // 캔버스 유닛 크기 보정
+            ctx.scale(dpr, dpr);
         };
 
         // 배경과 노드 그리기
         const drawBackground = () => {
             // 검은색 배경
             ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
 
             // 흰색 점 그리기
             ctx.fillStyle = '#ededed';
@@ -66,8 +72,8 @@ const FlowPage = () => {
             // 현재 보이는 영역의 점만 그리기
             const startX = Math.floor(-offset.x / (spacing * scale)) * spacing * scale;
             const startY = Math.floor(-offset.y / (spacing * scale)) * spacing * scale;
-            const endX = startX + canvas.width + spacing * scale;
-            const endY = startY + canvas.height + spacing * scale;
+            const endX = startX + canvas.width / window.devicePixelRatio + spacing * scale;
+            const endY = startY + canvas.height / window.devicePixelRatio + spacing * scale;
 
             for (let x = startX; x < endX; x += spacing * scale) {
                 for (let y = startY; y < endY; y += spacing * scale) {
@@ -134,8 +140,16 @@ const FlowPage = () => {
         // 노드 클릭 확인
         const findClickedNode = (x: number, y: number): Node | null => {
             const rect = canvas.getBoundingClientRect();
-            const worldX = (x - rect.left - offset.x) / scale;
-            const worldY = (y - rect.top - offset.y) / scale;
+            const scrollX = window.scrollX || window.pageXOffset;
+            const scrollY = window.scrollY || window.pageYOffset;
+            
+            // 실제 캔버스 상의 좌표로 변환
+            const canvasX = x - rect.left - scrollX;
+            const canvasY = y - rect.top - scrollY;
+            
+            // 월드 좌표로 변환
+            const worldX = (canvasX - offset.x) / scale;
+            const worldY = (canvasY - offset.y) / scale;
 
             return nodes.find((node: Node) => {
                 const dx = node.x - worldX;
@@ -192,12 +206,21 @@ const FlowPage = () => {
             if (isDraggingNode && draggingNodeId !== null) {
                 // 노드 드래그
                 const rect = canvas.getBoundingClientRect();
-                const newX = (point.clientX - rect.left - offset.x) / scale;
-                const newY = (point.clientY - rect.top - offset.y) / scale;
+                const scrollX = window.scrollX || window.pageXOffset;
+                const scrollY = window.scrollY || window.pageYOffset;
+                const newX = (point.clientX - rect.left - scrollX - offset.x) / scale;
+                const newY = (point.clientY - rect.top - scrollY - offset.y) / scale;
 
-                setNodes(nodes.map((node: Node) =>
+                const updatedNodes = nodes.map((node: Node) =>
                     node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
-                ));
+                );
+                setNodes(updatedNodes);
+                
+                // 선택된 노드 정보 업데이트
+                const updatedNode = updatedNodes.find(node => node.id === draggingNodeId);
+                if (updatedNode) {
+                    setSelectedNode(updatedNode);
+                }
             } else if (isDragging) {
                 // 배경 드래그
                 setOffset({
