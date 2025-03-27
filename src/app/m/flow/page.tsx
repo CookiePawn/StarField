@@ -52,99 +52,6 @@ const FlowPage = () => {
             canvas.height = window.innerHeight;
         };
 
-        // 핀치 줌 처리
-        let initialDistance = 0;
-        let initialScale = 1;
-        let lastTapTime = 0;
-        let lastTapPosition = { x: 0, y: 0 };
-
-        const handleTouchStart = (e: TouchEvent) => {
-            const touch = e.touches[0];
-            const currentTime = new Date().getTime();
-            const currentPosition = { x: touch.clientX, y: touch.clientY };
-
-            // 더블 탭 감지
-            if (currentTime - lastTapTime < 300 && 
-                Math.abs(currentPosition.x - lastTapPosition.x) < 10 && 
-                Math.abs(currentPosition.y - lastTapPosition.y) < 10) {
-                handleDoubleClick(e);
-                lastTapTime = 0;
-            } else {
-                lastTapTime = currentTime;
-                lastTapPosition = currentPosition;
-            }
-
-            // 핀치 줌 시작
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const touch1 = e.touches[0];
-                const touch2 = e.touches[1];
-                initialDistance = Math.hypot(
-                    touch2.clientX - touch1.clientX,
-                    touch2.clientY - touch1.clientY
-                );
-                initialScale = scale;
-            }
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const touch1 = e.touches[0];
-                const touch2 = e.touches[1];
-                const currentDistance = Math.hypot(
-                    touch2.clientX - touch1.clientX,
-                    touch2.clientY - touch1.clientY
-                );
-
-                // 새로운 스케일 계산
-                const newScale = Math.max(0.5, Math.min(2, initialScale * (currentDistance / initialDistance)));
-                
-                // 핀치 줌의 중심점 계산
-                const centerX = (touch1.clientX + touch2.clientX) / 2;
-                const centerY = (touch1.clientY + touch2.clientY) / 2;
-
-                // 마우스 포인터 위치를 기준으로 offset 조정
-                const rect = canvas.getBoundingClientRect();
-                const worldX = (centerX - rect.left - offset.x) / scale;
-                const worldY = (centerY - rect.top - offset.y) / scale;
-                const newOffsetX = centerX - worldX * newScale;
-                const newOffsetY = centerY - worldY * newScale;
-
-                setScale(newScale);
-                setOffset({ x: newOffsetX, y: newOffsetY });
-            } else if (e.touches.length === 1) {
-                e.preventDefault();
-                const touch = e.touches[0];
-                setMousePosition({ x: touch.clientX, y: touch.clientY });
-                
-                if (isDraggingNode && draggingNodeId !== null) {
-                    // 노드 드래그
-                    const rect = canvas.getBoundingClientRect();
-                    const newX = (touch.clientX - rect.left - offset.x) / scale;
-                    const newY = (touch.clientY - rect.top - offset.y) / scale;
-
-                    setNodes(nodes.map((node: Node) =>
-                        node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
-                    ));
-                } else if (isDragging) {
-                    // 배경 드래그
-                    setOffset({
-                        x: touch.clientX - dragStart.current.x,
-                        y: touch.clientY - dragStart.current.y
-                    });
-                }
-            }
-        };
-
-        const handleTouchEnd = (e: TouchEvent) => {
-            if (e.touches.length === 0) {
-                setIsDragging(false);
-                setIsDraggingNode(false);
-                setDraggingNodeId(null);
-            }
-        };
-
         // 배경과 노드 그리기
         const drawBackground = () => {
             // 검은색 배경
@@ -333,9 +240,6 @@ const FlowPage = () => {
         // 이벤트 리스너 등록
         canvas.addEventListener('mousedown', handleStart);
         canvas.addEventListener('touchstart', handleStart);
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', handleTouchEnd);
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('touchmove', handleMove, { passive: false });
         window.addEventListener('mouseup', handleEnd);
@@ -357,8 +261,6 @@ const FlowPage = () => {
             window.removeEventListener('resize', resizeCanvas);
             canvas.removeEventListener('mousedown', handleStart);
             canvas.removeEventListener('touchstart', handleStart);
-            canvas.removeEventListener('touchstart', handleTouchStart);
-            canvas.removeEventListener('touchmove', handleTouchMove);
             window.removeEventListener('mousemove', handleMove);
             window.removeEventListener('touchmove', handleMove);
             window.removeEventListener('mouseup', handleEnd);
