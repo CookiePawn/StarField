@@ -387,6 +387,8 @@ const FlowPage = () => {
           nodes={nodes}
           setNodes={setNodes}
           nodeIdRef={nodeIdRef}
+          scale={scale}
+          offset={offset}
         />
       )}  
       {selectedNode && (

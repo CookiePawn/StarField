@@ -63,53 +63,59 @@ export const ContextMenu_Node: React.FC<{
         )
     };
 
-export const ContextMenu_Canvas: React.FC<{
+interface ContextMenu_CanvasProps {
     contextMenu: CanvasContextMenu;
-    setContextMenu: (contextMenu: CanvasContextMenu) => void;
+    setContextMenu: (menu: CanvasContextMenu) => void;
     nodes: Node[];
     setNodes: (nodes: Node[]) => void;
-    nodeIdRef: React.MutableRefObject<number>;
-}> = ({
+    nodeIdRef: React.RefObject<number>;
+    scale: number;
+    offset: { x: number; y: number };
+}
+
+export const ContextMenu_Canvas: React.FC<ContextMenu_CanvasProps> = ({
     contextMenu,
     setContextMenu,
     nodes,
     setNodes,
-    nodeIdRef
+    nodeIdRef,
+    scale,
+    offset
 }) => {
-        const handleAddNode = () => {
-            const newLabel = prompt('새로운 노드 이름을 입력하세요:');
-            if (newLabel) {
-                const newNode = {
-                    id: nodeIdRef.current++,
-                    x: contextMenu.x,
-                    y: contextMenu.y,
-                    label: newLabel,
-                };
-                setNodes([...nodes, newNode]);
-                setContextMenu({ visible: false, x: 0, y: 0 });
-            }
+    const handleAddNode = () => {
+        if (!nodeIdRef.current) return;
+
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        // scale과 offset을 고려하여 정확한 위치 계산
+        const x = (contextMenu.x - rect.left - offset.x) / scale;
+        const y = (contextMenu.y - rect.top - offset.y) / scale;
+
+        const newNode: Node = {
+            id: nodeIdRef.current,
+            label: `Node ${nodeIdRef.current}`,
+            x: x,
+            y: y
         };
 
-        return (
-            <div
-                className={styles.contextMenu}
-                style={{
-                    top: contextMenu.y,
-                    left: contextMenu.x,
-                }}
-                onContextMenu={(e) => e.preventDefault()}
-            >
-                <div
-                    className="hover:bg-gray-100"
-                    onClick={handleAddNode}
-                >
-                    입력노드 추가
-                </div>
-                <div
-                    className="hover:bg-gray-100"
-                >
-                    출력노드 추가
-                </div>
+        setNodes([...nodes, newNode]);
+        nodeIdRef.current += 1;
+        setContextMenu({ visible: false, x: 0, y: 0 });
+    };
+
+    return (
+        <div
+            className={styles.contextMenu}
+            style={{
+                left: contextMenu.x,
+                top: contextMenu.y,
+            }}
+        >
+            <div className={styles.menuItem} onClick={handleAddNode}>
+                노드 추가
             </div>
-        );
-    }; 
+        </div>
+    );
+}; 
