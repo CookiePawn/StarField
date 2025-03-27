@@ -424,7 +424,10 @@ const FlowPage = () => {
                 position: 'relative',
                 top: 0,
                 left: 0,
-                touchAction: 'none',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
             }}
             onContextMenu={(e) => e.preventDefault()}
         >
