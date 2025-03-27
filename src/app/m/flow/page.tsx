@@ -55,8 +55,26 @@ const FlowPage = () => {
         // 핀치 줌 처리
         let initialDistance = 0;
         let initialScale = 1;
+        let lastTapTime = 0;
+        let lastTapPosition = { x: 0, y: 0 };
 
         const handleTouchStart = (e: TouchEvent) => {
+            const touch = e.touches[0];
+            const currentTime = new Date().getTime();
+            const currentPosition = { x: touch.clientX, y: touch.clientY };
+
+            // 더블 탭 감지
+            if (currentTime - lastTapTime < 300 && 
+                Math.abs(currentPosition.x - lastTapPosition.x) < 10 && 
+                Math.abs(currentPosition.y - lastTapPosition.y) < 10) {
+                handleDoubleClick(e);
+                lastTapTime = 0;
+            } else {
+                lastTapTime = currentTime;
+                lastTapPosition = currentPosition;
+            }
+
+            // 핀치 줌 시작
             if (e.touches.length === 2) {
                 e.preventDefault();
                 const touch1 = e.touches[0];
@@ -95,6 +113,35 @@ const FlowPage = () => {
 
                 setScale(newScale);
                 setOffset({ x: newOffsetX, y: newOffsetY });
+            } else if (e.touches.length === 1) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                setMousePosition({ x: touch.clientX, y: touch.clientY });
+                
+                if (isDraggingNode && draggingNodeId !== null) {
+                    // 노드 드래그
+                    const rect = canvas.getBoundingClientRect();
+                    const newX = (touch.clientX - rect.left - offset.x) / scale;
+                    const newY = (touch.clientY - rect.top - offset.y) / scale;
+
+                    setNodes(nodes.map((node: Node) =>
+                        node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
+                    ));
+                } else if (isDragging) {
+                    // 배경 드래그
+                    setOffset({
+                        x: touch.clientX - dragStart.current.x,
+                        y: touch.clientY - dragStart.current.y
+                    });
+                }
+            }
+        };
+
+        const handleTouchEnd = (e: TouchEvent) => {
+            if (e.touches.length === 0) {
+                setIsDragging(false);
+                setIsDraggingNode(false);
+                setDraggingNodeId(null);
             }
         };
 
@@ -288,6 +335,7 @@ const FlowPage = () => {
         canvas.addEventListener('touchstart', handleStart);
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd);
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('touchmove', handleMove, { passive: false });
         window.addEventListener('mouseup', handleEnd);
