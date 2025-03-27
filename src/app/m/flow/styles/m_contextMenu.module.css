@@ -1,0 +1,67 @@
+.contextMenu {
+    position: fixed;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 8px;
+    z-index: 1000;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}   
+
+.contextMenuItem {
+    padding: 8px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: #000;
+}
+
+
+
+.nodeContextMenu {
+    position: fixed;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    min-width: 200px;
+    color: white;
+}
+
+.nodeContextMenuNameItem { 
+    padding: 8px; 
+    border-bottom: 1px solid #404040;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;    
+}
+
+.nodeContextMenuButton {
+    background: none;
+    border: none;
+    color: #808080;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+}
+
+.nodeContextMenuInput {
+    padding: 8px;
+    border-bottom: 1px solid #404040;
+}
+
+.nodeContextMenuInput input {
+    width: 100%;
+    padding: 4px;
+    background: #404040;
+    border: 1px solid #505050;
+    border-radius: 4px;
+    color: white;
+}
+
+.padding8 {
+    padding: 8px;
+}

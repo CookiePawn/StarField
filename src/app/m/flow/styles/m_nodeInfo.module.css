@@ -1,0 +1,53 @@
+.container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 200px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.nodeInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.nodeInfo h3 {
+    margin: 0;
+    color: #000;
+}
+
+.nodeInfoButton {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.nodeInfoItem {
+    margin-bottom: 10px;
+}
+
+.nodeInfoItemStrong {
+    color: #000;
+}
+
+.nodeInfoItemUl {
+    margin: 5px 0 0 0;
+    padding-left: 10px;
+}
+
+.nodeInfoItemP {
+    margin: 5px 0 0 0;
+    color: #666;
+}

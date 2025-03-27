@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Node } from '../type';
+import styles from '../styles/m_contextMenu.module.css';
 
 interface ContextMenuProps {
     visible: boolean;
@@ -19,34 +20,21 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     if (!visible) return null;
 
     return (
-        <div
+        <div 
+            className={styles.contextMenu}
             style={{
-                position: 'fixed',
                 top: y,
                 left: x,
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                padding: '8px',
-                zIndex: 1000,
             }}
         >
             <div
-                style={{
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                }}
+                className={styles.contextMenuItem}
                 onClick={onAddNode}
             >
                 노드 추가
             </div>
             <div
-                style={{
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                }}
+                className={styles.contextMenuItem}
                 onClick={onClose}
             >
                 취소
@@ -102,61 +90,33 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
     return (
         <div
+            className={styles.nodeContextMenu}
             style={{
-                position: 'fixed',
                 top: y,
                 left: x,
-                backgroundColor: '#2d2d2d',
-                borderRadius: '8px',
-                padding: '8px',
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
-                zIndex: 1000,
-                minWidth: '200px',
-                color: 'white'
             }}
         >
-            <div style={{ 
-                padding: '8px', 
-                borderBottom: '1px solid #404040',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
+            <div className={styles.nodeContextMenuNameItem}>
                 <span>노드 {node.id}</span>
                 <button
                     onClick={onClose}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#808080',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        padding: '0 4px'
-                    }}
+                    className={styles.nodeContextMenuButton}
                 >
                     ×
                 </button>
             </div>
 
             {isRenaming ? (
-                <form onSubmit={handleRenameSubmit} style={{ padding: '8px' }}>
+                <form onSubmit={handleRenameSubmit} className={styles.nodeContextMenuInput}>
                     <input
                         type="text"
                         value={newLabel}
                         onChange={(e) => setNewLabel(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '4px',
-                            background: '#404040',
-                            border: '1px solid #505050',
-                            borderRadius: '4px',
-                            color: 'white'
-                        }}
                         autoFocus
                     />
                 </form>
             ) : (
-                <div style={{ padding: '8px' }}>
+                <div className={styles.padding8}>
                     <div
                         onClick={() => setIsRenaming(true)}
                         onMouseEnter={() => setHoveredItem('rename')}
