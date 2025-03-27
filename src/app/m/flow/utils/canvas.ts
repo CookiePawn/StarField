@@ -60,7 +60,6 @@ export const handleNodeConnect = (
     setConnectingFrom: (id: number) => void,
     setSelectedNode: (node: Node) => void,
     setNodeContextMenu: (menu: NodeContextMenuState) => void,
-    nodes: Node[]
 ) => {
     if (nodeContextMenu.node) {
         setConnectingFrom(nodeContextMenu.node.id);

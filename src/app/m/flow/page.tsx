@@ -104,7 +104,7 @@ const FlowPage = () => {
                 onClose={() => setNodeContextMenu({ visible: false, x: 0, y: 0, node: null })}
                 onDelete={() => handleNodeDelete(nodeContextMenu, setNodes, setNodeContextMenu, nodes)}
                 onRename={(newLabel) => handleNodeRename(nodeContextMenu, setNodes, setNodeContextMenu, nodes, newLabel)}
-                onConnect={() => handleNodeConnect(nodeContextMenu, setConnectingFrom, setSelectedNode, setNodeContextMenu, nodes)}
+                onConnect={() => handleNodeConnect(nodeContextMenu, setConnectingFrom, setSelectedNode, setNodeContextMenu)}
             />
             <NodeInfo
                 node={selectedNode}
