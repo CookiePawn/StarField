@@ -3,7 +3,11 @@ import React, { useLayoutEffect } from 'react';
 
 export default function Home() {
   useLayoutEffect(() => {
-    window.location.href = '/flow';
+    if (window.innerWidth < 768) {
+      window.location.href = '/m/flow';
+    } else {
+      window.location.href = '/flow';
+    }
   }, []);
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'black', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
