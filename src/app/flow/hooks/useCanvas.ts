@@ -667,12 +667,23 @@ export const useCanvas = ({
                 // 선택된 노드의 레이더 애니메이션
                 if (selectedNode === node.id || selectedNodesRef.current.includes(node.id)) {
                     const time = Date.now() / 1000;
-                    const pulseRadius = (time % 2) * 20 * scale;
+                    // 빠른 펄스 애니메이션
+                    const pulseProgress = (Math.sin(time * 3.5) + 0.5) / 2; // 0에서 1 사이로 정규화
+                    
+                    // 최소 반경(노드보다 약간 큰 크기)과 최대 반경 설정
+                    const minRadius = 57 * scale;
+                    const maxRadius = 60 * scale;
+                    
+                    // 현재 반경 계산
+                    const currentRadius = minRadius + (maxRadius - minRadius) * pulseProgress;
+                    
+                    // 투명도 계산 (펄스 진행도에 따라 0.4에서 0.6 사이로 변화)
+                    const opacity = 0.3 + (0.2 * pulseProgress);
                     
                     // 레이더 원 그리기
                     ctx.beginPath();
-                    ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale + pulseRadius, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${1 - pulseRadius / (20 * scale)})`;
+                    ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, currentRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 }
