@@ -62,6 +62,7 @@ export const useCanvas = ({
     const animationFrameRef = useRef<number | undefined>(undefined);
     const selectedLinkRef = useRef<Link | null>(null);
     const dragBoxRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+    const selectedNodesRef = useRef<number[]>([]);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -243,7 +244,15 @@ export const useCanvas = ({
                 );
 
                 if (selectedNodes.length > 0) {
-                    setSelectedNode(selectedNodes[0].id);
+                    selectedNodesRef.current = selectedNodes.map(node => node.id);
+                    if (selectedNodes.length === 1) {
+                        setSelectedNode(selectedNodes[0].id);
+                    } else {
+                        setSelectedNode(null);
+                    }
+                } else {
+                    selectedNodesRef.current = [];
+                    setSelectedNode(null);
                 }
 
                 dragBoxRef.current = null;
@@ -405,51 +414,7 @@ export const useCanvas = ({
             drawDragBox();
 
             // 노드 그리기
-            nodes.forEach(node => {
-                // 검은색 배경
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 흰색 그라데이션 생성
-                const gradient = ctx.createRadialGradient(
-                    node.x * scale + offset.x,
-                    node.y * scale + offset.y,
-                    0,
-                    node.x * scale + offset.x,
-                    node.y * scale + offset.y,
-                    50 * scale
-                );
-                gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
-                gradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
-
-                // 그라데이션 적용
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 선택된 노드의 레이더 애니메이션
-                if (selectedNode === node.id) {
-                    const time = Date.now() / 1000;
-                    const pulseRadius = (time % 2) * 20 * scale;
-                    
-                    // 레이더 원 그리기
-                    ctx.beginPath();
-                    ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale + pulseRadius, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${1 - pulseRadius / (20 * scale)})`;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-
-                // 노드 텍스트
-                ctx.fillStyle = 'white';
-                ctx.font = `${12 * scale}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(node.label, node.x * scale + offset.x, node.y * scale + offset.y);
-            });
+            drawNodes();
 
             // 다음 프레임 요청
             animationFrameRef.current = requestAnimationFrame(drawBackground);
@@ -527,6 +492,55 @@ export const useCanvas = ({
                     ctx.stroke();
                 }
             }
+        };
+
+        // 노드 그리기 수정
+        const drawNodes = () => {
+            nodes.forEach(node => {
+                // 검은색 배경
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 흰색 그라데이션 생성
+                const gradient = ctx.createRadialGradient(
+                    node.x * scale + offset.x,
+                    node.y * scale + offset.y,
+                    0,
+                    node.x * scale + offset.x,
+                    node.y * scale + offset.y,
+                    50 * scale
+                );
+                gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+
+                // 그라데이션 적용
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 선택된 노드의 레이더 애니메이션
+                if (selectedNode === node.id || selectedNodesRef.current.includes(node.id)) {
+                    const time = Date.now() / 1000;
+                    const pulseRadius = (time % 2) * 20 * scale;
+                    
+                    // 레이더 원 그리기
+                    ctx.beginPath();
+                    ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale + pulseRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${1 - pulseRadius / (20 * scale)})`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                // 노드 텍스트
+                ctx.fillStyle = 'white';
+                ctx.font = `${12 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.label, node.x * scale + offset.x, node.y * scale + offset.y);
+            });
         };
 
         // 초기 그리기 시작
