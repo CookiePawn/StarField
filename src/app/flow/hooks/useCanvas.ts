@@ -180,23 +180,6 @@ export const useCanvas = ({
                         setConnectingFrom(clickedNode.id);
                         setSelectedNode(clickedNode.id);
                         setIsDragging(true);
-                    } else if (isConnecting) {
-                        // 연결 모드에서 노드 클릭: 연결 완료
-                        if (clickedNode.id !== connectingFrom && connectingFrom !== null) {
-                            // 이미 링크가 존재하는지 확인
-                            const linkExists = links.some(link =>
-                                (link.from === connectingFrom && link.to === clickedNode.id) ||
-                                (link.from === clickedNode.id && link.to === connectingFrom)
-                            );
-
-                            if (!linkExists) {
-                                setLinks([...links, { from: connectingFrom, to: clickedNode.id }]);
-                            }
-                        }
-                        setIsConnecting(false);
-                        setConnectingFrom(null);
-                        setSelectedNode(null);
-                        setIsDragging(false);
                     } else {
                         // 일반 클릭: 노드 드래그 시작
                         setIsDragging(true);
@@ -274,6 +257,8 @@ export const useCanvas = ({
                 const rect = canvas.getBoundingClientRect();
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
+                
+                // 노드 위치 업데이트 (드래그 중에만)
                 setNodes(nodes.map(node =>
                     node.id === draggingNode ? { ...node, x: newX, y: newY } : node
                 ));
