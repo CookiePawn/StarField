@@ -36,6 +36,7 @@ interface Group {
     centerX: number;
     centerY: number;
     radius: number;
+    name: string;
 }
 
 export const useCanvas = ({
@@ -115,7 +116,8 @@ export const useCanvas = ({
                         nodeIds: selectedNodesRef.current,
                         centerX,
                         centerY,
-                        radius
+                        radius,
+                        name: `Group ${groupsRef.current.length + 1}`
                     };
 
                     groupsRef.current = [...groupsRef.current, newGroup];
@@ -229,6 +231,29 @@ export const useCanvas = ({
                 const rect = canvas.getBoundingClientRect();
                 const x = (e.clientX - rect.left - offset.x) / scale;
                 const y = (e.clientY - rect.top - offset.y) / scale;
+
+                // 그룹 텍스트 더블클릭 확인
+                const clickedGroup = groupsRef.current.find(group => {
+                    const textX = group.centerX;
+                    const textY = group.centerY - group.radius - 20;
+                    const textWidth = ctx.measureText(group.name).width / scale;
+                    const textHeight = 14; // 폰트 크기
+
+                    return (
+                        x >= textX - textWidth / 2 &&
+                        x <= textX + textWidth / 2 &&
+                        y >= textY - textHeight / 2 &&
+                        y <= textY + textHeight / 2
+                    );
+                });
+
+                if (clickedGroup) {
+                    const newName = prompt('그룹 이름을 입력하세요:', clickedGroup.name);
+                    if (newName !== null) {
+                        clickedGroup.name = newName;
+                    }
+                    return;
+                }
 
                 // 클릭한 위치에 노드가 있는지 확인
                 const clickedNode = nodes.find(node => {
@@ -561,6 +586,17 @@ export const useCanvas = ({
                 );
                 ctx.stroke();
                 ctx.setLineDash([]);
+
+                // 그룹 이름 표시
+                ctx.fillStyle = strokeStyle;
+                ctx.font = `${14 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(
+                    group.name,
+                    group.centerX * scale + offset.x,
+                    (group.centerY - group.radius) * scale + offset.y - 20 * scale
+                );
             });
         };
 

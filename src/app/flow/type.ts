@@ -22,3 +22,12 @@ export interface CanvasContextMenu {
     x: number;
     y: number;
 }
+
+export interface Group {
+    id: number;
+    nodeIds: number[];
+    centerX: number;
+    centerY: number;
+    radius: number;
+    name: string;
+}
