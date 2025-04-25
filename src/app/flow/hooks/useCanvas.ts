@@ -188,23 +188,36 @@ export const useCanvas = ({
                 return;
             }
 
+            // 노드가 선택되지 않았을 때만 그룹 선택 확인
+            const clickedGroup = groupsRef.current.find(group => {
+                const distance = Math.sqrt(
+                    Math.pow(x - group.centerX, 2) + Math.pow(y - group.centerY, 2)
+                );
+                return distance <= group.radius;
+            });
+
+            if (clickedGroup) {
+                selectedGroupRef.current = clickedGroup;
+                setIsDragging(true);
+                dragStart.current = {
+                    x: e.clientX - offset.x,
+                    y: e.clientY - offset.y
+                };
+                return;
+            }
+
             // 노드가 선택되지 않았을 때만 링크 선택 확인
             selectLink(e.clientX, e.clientY);
 
-            // 링크도 선택되지 않았을 때 그룹 선택 확인
-            if (!selectedLinkRef.current) {
-                selectGroup(e.clientX, e.clientY);
-            }
-
             // 배경 클릭 시 드래그 박스 시작 (Control/Command 키를 누른 상태에서만)
-            if (!selectedLinkRef.current && !selectedGroupRef.current && (e.ctrlKey || e.metaKey)) {
+            if (!selectedLinkRef.current && (e.ctrlKey || e.metaKey)) {
                 dragBoxRef.current = {
                     startX: e.clientX,
                     startY: e.clientY,
                     endX: e.clientX,
                     endY: e.clientY
                 };
-            } else if (!selectedLinkRef.current && !selectedGroupRef.current) {
+            } else if (!selectedLinkRef.current) {
                 // Control/Command 키를 누르지 않은 상태에서 배경 클릭 시 캔버스 드래그 시작
                 setIsDragging(true);
                 canvas.style.cursor = 'grabbing';
@@ -274,7 +287,32 @@ export const useCanvas = ({
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            if (isDragging && draggingNode !== null) {
+            if (isDragging && selectedGroupRef.current) {
+                // 그룹 드래그
+                const dx = (e.clientX - dragStart.current.x - offset.x) / scale;
+                const dy = (e.clientY - dragStart.current.y - offset.y) / scale;
+
+                // 그룹 내 모든 노드 이동
+                setNodes(nodes.map(node => {
+                    if (selectedGroupRef.current?.nodeIds.includes(node.id)) {
+                        return {
+                            ...node,
+                            x: node.x + dx,
+                            y: node.y + dy
+                        };
+                    }
+                    return node;
+                }));
+
+                // 그룹 중심점 업데이트
+                selectedGroupRef.current.centerX += dx;
+                selectedGroupRef.current.centerY += dy;
+
+                dragStart.current = {
+                    x: e.clientX - offset.x,
+                    y: e.clientY - offset.y
+                };
+            } else if (isDragging && draggingNode !== null) {
                 // 노드 드래그
                 const rect = canvas.getBoundingClientRect();
                 const newX = (e.clientX - rect.left - offset.x) / scale;
@@ -363,6 +401,7 @@ export const useCanvas = ({
 
             setIsDragging(false);
             setDraggingNode(null);
+            selectedGroupRef.current = null;
             if (isConnecting) {
                 setIsConnecting(false);
                 setConnectingFrom(null);
