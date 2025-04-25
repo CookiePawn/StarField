@@ -166,18 +166,24 @@ export const useCanvas = ({
 
             if (clickedNode) {
                 if (e.ctrlKey || e.metaKey) {
-                    // Command/Control+드래그: 노드 연결 시작
-                    setIsConnecting(true);
-                    setConnectingFrom(clickedNode.id);
-                    setSelectedNode(clickedNode.id);
-                    setIsDragging(true);
+                    // Command/Control+클릭: 노드 선택 추가/제거
+                    const index = selectedNodesRef.current.indexOf(clickedNode.id);
+                    if (index === -1) {
+                        // 노드가 선택되지 않은 경우 추가
+                        selectedNodesRef.current.push(clickedNode.id);
+                    } else {
+                        // 노드가 이미 선택된 경우 제거
+                        selectedNodesRef.current.splice(index, 1);
+                    }
+                    setSelectedNode(selectedNodesRef.current.length === 1 ? selectedNodesRef.current[0] : null);
                 } else {
-                    // 일반 클릭: 노드 드래그 시작
-                    setIsDragging(true);
-                    setDraggingNode(clickedNode.id);
+                    // 일반 클릭: 단일 노드 선택
+                    selectedNodesRef.current = [clickedNode.id];
                     setSelectedNode(clickedNode.id);
                 }
-                return; // 노드가 선택되었으면 링크 선택 검사를 하지 않음
+                setIsDragging(true);
+                setDraggingNode(clickedNode.id);
+                return;
             }
 
             // 노드가 선택되지 않았을 때만 링크 선택 확인
@@ -204,15 +210,15 @@ export const useCanvas = ({
                     x: e.clientX - offset.x,
                     y: e.clientY - offset.y
                 };
+                // 배경 클릭 시 선택 해제
+                selectedNodesRef.current = [];
+                setSelectedNode(null);
             }
 
             // 배경 클릭 시 링크 연결 모드 취소
             if (isConnecting) {
                 setIsConnecting(false);
                 setConnectingFrom(null);
-                setSelectedNode(null);
-                setIsDragging(false);
-            } else {
                 setSelectedNode(null);
             }
         };
