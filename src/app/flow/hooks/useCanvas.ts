@@ -74,6 +74,7 @@ export const useCanvas = ({
     const selectedNodesRef = useRef<number[]>([]);
     const groupsRef = useRef<Group[]>([]);
     const selectedGroupRef = useRef<Group | null>(null);
+    const dragOffset = useRef<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -211,6 +212,12 @@ export const useCanvas = ({
                         group.nodeIds.push(newNode.id);
                     });
 
+                    // 클릭한 위치와 노드 중심점의 차이를 저장
+                    dragOffset.current = {
+                        x: x - clickedNode.x,
+                        y: y - clickedNode.y
+                    };
+
                     setDraggingNode(newNode.id);
                     setIsDragging(true);
                     return;
@@ -221,6 +228,12 @@ export const useCanvas = ({
                 }
                 setIsDragging(true);
                 setDraggingNode(clickedNode.id);
+
+                // 클릭한 위치와 노드 중심점의 차이를 저장
+                dragOffset.current = {
+                    x: x - clickedNode.x,
+                    y: y - clickedNode.y
+                };
                 return;
             }
 
@@ -349,7 +362,6 @@ export const useCanvas = ({
                     y: e.clientY - offset.y
                 };
             } else if (isDragging && draggingNode !== null) {
-                // 노드 드래그
                 const rect = canvas.getBoundingClientRect();
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
@@ -364,7 +376,11 @@ export const useCanvas = ({
                 
                 // 노드 위치 업데이트 (드래그 중에만)
                 setNodes(nodes.map(node =>
-                    node.id === draggingNode ? { ...node, x: newX, y: newY } : node
+                    node.id === draggingNode ? { 
+                        ...node, 
+                        x: newX - (dragOffset.current?.x || 0), 
+                        y: newY - (dragOffset.current?.y || 0) 
+                    } : node
                 ));
             } else if (isDragging && !isConnecting) {
                 // 캔버스 드래그
