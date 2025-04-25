@@ -60,6 +60,7 @@ export const useCanvas = ({
 }: UseCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number | undefined>(undefined);
+    const selectedLinkRef = useRef<Link | null>(null);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -77,6 +78,12 @@ export const useCanvas = ({
                 setIsGrabbing(true);
                 canvas.style.cursor = 'grab';
             }
+            if (e.key === 'Backspace' && selectedLinkRef.current) {
+                setLinks(links.filter(link => 
+                    !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
+                ));
+                selectedLinkRef.current = null;
+            }
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
@@ -91,6 +98,9 @@ export const useCanvas = ({
             // 우클릭 메뉴 닫기
             setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
             setCanvasContextMenu({ visible: false, x: 0, y: 0 });
+
+            // 링크 선택
+            selectLink(e.clientX, e.clientY);
 
             // 우클릭(mouse button 2)일 때는 노드 메뉴 처리
             if (e.button === 2) {
@@ -136,7 +146,7 @@ export const useCanvas = ({
                 });
 
                 if (clickedNode) {
-                    if (e.ctrlKey && !isConnecting) {
+                    if (e.ctrlKey) {
                         // Ctrl+클릭: 노드 연결 시작
                         setIsConnecting(true);
                         setConnectingFrom(clickedNode.id);
@@ -248,6 +258,66 @@ export const useCanvas = ({
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
+        // 링크 선택 함수
+        const selectLink = (x: number, y: number) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (x - rect.left - offset.x) / scale;
+            const mouseY = (y - rect.top - offset.y) / scale;
+
+            // 모든 링크에 대해 거리 계산
+            for (const link of links) {
+                const fromNode = nodes.find(n => n.id === link.from);
+                const toNode = nodes.find(n => n.id === link.to);
+                if (!fromNode || !toNode) continue;
+
+                // 링크의 선분과 마우스 포인트 사이의 거리 계산
+                const distance = distanceToLine(
+                    mouseX, mouseY,
+                    fromNode.x, fromNode.y,
+                    toNode.x, toNode.y
+                );
+
+                // 거리가 임계값 이내이면 링크 선택
+                if (distance < 5) {
+                    selectedLinkRef.current = link;
+                    return;
+                }
+            }
+            selectedLinkRef.current = null;
+        };
+
+        // 선분과 점 사이의 거리 계산 함수
+        const distanceToLine = (x: number, y: number, x1: number, y1: number, x2: number, y2: number) => {
+            const A = x - x1;
+            const B = y - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+
+            const dot = A * C + B * D;
+            const len_sq = C * C + D * D;
+            let param = -1;
+            if (len_sq !== 0) {
+                param = dot / len_sq;
+            }
+
+            let xx, yy;
+
+            if (param < 0) {
+                xx = x1;
+                yy = y1;
+            } else if (param > 1) {
+                xx = x2;
+                yy = y2;
+            } else {
+                xx = x1 + param * C;
+                yy = y1 + param * D;
+            }
+
+            const dx = x - xx;
+            const dy = y - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
         // 배경과 노드 그리기
         const drawBackground = () => {
             // 캔버스 초기화
@@ -277,64 +347,7 @@ export const useCanvas = ({
             }
 
             // 링크 그리기
-            ctx.strokeStyle = 'gray';
-            ctx.lineWidth = 2;
-            links.forEach(link => {
-                const fromNode = nodes.find(n => n.id === link.from);
-                const toNode = nodes.find(n => n.id === link.to);
-                if (fromNode && toNode) {
-                    // 링크 선 그리기
-                    ctx.beginPath();
-                    ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
-                    ctx.lineTo(toNode.x * scale + offset.x, toNode.y * scale + offset.y);
-                    ctx.stroke();
-
-                    // 화살표 그리기
-                    const angle = Math.atan2(
-                        toNode.y * scale + offset.y - (fromNode.y * scale + offset.y),
-                        toNode.x * scale + offset.x - (fromNode.x * scale + offset.x)
-                    );
-
-                    // 링크 중앙점 계산
-                    const centerX = (fromNode.x * scale + offset.x + toNode.x * scale + offset.x) / 2;
-                    const centerY = (fromNode.y * scale + offset.y + toNode.y * scale + offset.y) / 2;
-
-                    // 화살표 크기 설정
-                    const arrowSize = 15 * scale;
-                    const arrowAngle = Math.PI / 6; // 30도
-
-                    // 화살표 그리기
-                    ctx.beginPath();
-                    ctx.moveTo(centerX, centerY);
-                    ctx.lineTo(
-                        centerX - arrowSize * Math.cos(angle - arrowAngle),
-                        centerY - arrowSize * Math.sin(angle - arrowAngle)
-                    );
-                    ctx.lineTo(
-                        centerX - arrowSize * Math.cos(angle + arrowAngle),
-                        centerY - arrowSize * Math.sin(angle + arrowAngle)
-                    );
-                    ctx.closePath();
-                    ctx.fillStyle = 'gray';
-                    ctx.fill();
-                }
-            });
-
-            // 연결 중인 임시 선 그리기
-            if (isConnecting && connectingFrom !== null) {
-                const fromNode = nodes.find(n => n.id === connectingFrom);
-                if (fromNode) {
-                    const rect = canvas.getBoundingClientRect();
-                    const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
-                    const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
-
-                    ctx.beginPath();
-                    ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
-                    ctx.lineTo(mouseX * scale + offset.x, mouseY * scale + offset.y);
-                    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
-                    ctx.stroke();
-                }
-            }
+            drawLinks();
 
             // 노드 그리기
             nodes.forEach(node => {
@@ -385,6 +398,80 @@ export const useCanvas = ({
 
             // 다음 프레임 요청
             animationFrameRef.current = requestAnimationFrame(drawBackground);
+        };
+
+        // 링크 그리기 수정
+        const drawLinks = () => {
+            ctx.strokeStyle = 'gray';
+            ctx.lineWidth = 2;
+            links.forEach(link => {
+                const fromNode = nodes.find(n => n.id === link.from);
+                const toNode = nodes.find(n => n.id === link.to);
+                if (fromNode && toNode) {
+                    // 선택된 링크 강조
+                    if (selectedLinkRef.current && 
+                        selectedLinkRef.current.from === link.from && 
+                        selectedLinkRef.current.to === link.to) {
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 3;
+                    } else {
+                        ctx.strokeStyle = 'gray';
+                        ctx.lineWidth = 2;
+                    }
+
+                    // 링크 선 그리기
+                    ctx.beginPath();
+                    ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
+                    ctx.lineTo(toNode.x * scale + offset.x, toNode.y * scale + offset.y);
+                    ctx.stroke();
+
+                    // 화살표 그리기
+                    const angle = Math.atan2(
+                        toNode.y * scale + offset.y - (fromNode.y * scale + offset.y),
+                        toNode.x * scale + offset.x - (fromNode.x * scale + offset.x)
+                    );
+
+                    // 링크 중앙점 계산
+                    const centerX = (fromNode.x * scale + offset.x + toNode.x * scale + offset.x) / 2;
+                    const centerY = (fromNode.y * scale + offset.y + toNode.y * scale + offset.y) / 2;
+
+                    // 화살표 크기 설정
+                    const arrowSize = 15 * scale;
+                    const arrowAngle = Math.PI / 6; // 30도
+
+                    // 화살표 그리기
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(
+                        centerX - arrowSize * Math.cos(angle - arrowAngle),
+                        centerY - arrowSize * Math.sin(angle - arrowAngle)
+                    );
+                    ctx.lineTo(
+                        centerX - arrowSize * Math.cos(angle + arrowAngle),
+                        centerY - arrowSize * Math.sin(angle + arrowAngle)
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = 'gray';
+                    ctx.fill();
+                }
+            });
+
+            // 연결 중인 임시 선 그리기
+            if (isConnecting && connectingFrom !== null) {
+                const fromNode = nodes.find(n => n.id === connectingFrom);
+                if (fromNode) {
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
+                    const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
+
+                    ctx.beginPath();
+                    ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
+                    ctx.lineTo(mouseX * scale + offset.x, mouseY * scale + offset.y);
+                    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
         };
 
         // 초기 그리기 시작
