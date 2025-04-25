@@ -349,7 +349,17 @@ export const useCanvas = ({
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            // 새로운 스케일 계산
+            // 트랙패드 스크롤 감지 (deltaMode가 0인 경우)
+            if (e.deltaMode === 0) {
+                // 스크롤 방향에 따라 offset 조정
+                setOffset({
+                    x: offset.x - e.deltaX,
+                    y: offset.y - e.deltaY
+                });
+                return;
+            }
+
+            // 기존의 줌 기능 (마우스 휠)
             const delta = e.deltaY;
             const newScale = Math.max(0.5, Math.min(2, scale - delta / 1000));
 
