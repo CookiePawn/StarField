@@ -99,45 +99,12 @@ export const useCanvas = ({
             setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
             setCanvasContextMenu({ visible: false, x: 0, y: 0 });
 
-            // 링크 선택
-            selectLink(e.clientX, e.clientY);
-
-            // 우클릭(mouse button 2)일 때는 노드 메뉴 처리
-            if (e.button === 2) {
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left - offset.x) / scale;
-                const y = (e.clientY - rect.top - offset.y) / scale;
-
-                const clickedNode = nodes.find(node => {
-                    const dx = node.x - x;
-                    const dy = node.y - y;
-                    return Math.sqrt(dx * dx + dy * dy) <= 50;
-                });
-
-                if (clickedNode) {
-                    setContextMenu({
-                        visible: true,
-                        x: e.clientX,
-                        y: e.clientY,
-                        nodeId: clickedNode.id
-                    });
-                } else {
-                    setCanvasContextMenu({
-                        visible: true,
-                        x: e.clientX,
-                        y: e.clientY
-                    });
-                }
-                return;
-            }
-
             if (!isGrabbing) {
-                // 노드 드래그 시작
                 const rect = canvas.getBoundingClientRect();
                 const x = (e.clientX - rect.left - offset.x) / scale;
                 const y = (e.clientY - rect.top - offset.y) / scale;
 
-                // 클릭한 위치에 노드가 있는지 확인
+                // 먼저 노드 선택 확인
                 const clickedNode = nodes.find(node => {
                     if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
                     const dx = node.x - x;
@@ -173,15 +140,19 @@ export const useCanvas = ({
                         setDraggingNode(clickedNode.id);
                         setSelectedNode(clickedNode.id);
                     }
+                    return; // 노드가 선택되었으면 링크 선택 검사를 하지 않음
+                }
+
+                // 노드가 선택되지 않았을 때만 링크 선택 확인
+                selectLink(e.clientX, e.clientY);
+
+                // 배경 클릭 시 링크 연결 모드 취소
+                if (isConnecting) {
+                    setIsConnecting(false);
+                    setConnectingFrom(null);
+                    setSelectedNode(null);
                 } else {
-                    // 배경 클릭 시 링크 연결 모드 취소
-                    if (isConnecting) {
-                        setIsConnecting(false);
-                        setConnectingFrom(null);
-                        setSelectedNode(null);
-                    } else {
-                        setSelectedNode(null);
-                    }
+                    setSelectedNode(null);
                 }
             } else {
                 setIsDragging(true);
@@ -190,6 +161,31 @@ export const useCanvas = ({
                     x: e.clientX - offset.x,
                     y: e.clientY - offset.y
                 };
+            }
+        };
+
+        // 더블클릭 이벤트 추가
+        const handleDoubleClick = (e: MouseEvent) => {
+            if (e.button === 0) { // 좌클릭
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - offset.x) / scale;
+                const y = (e.clientY - rect.top - offset.y) / scale;
+
+                // 클릭한 위치에 노드가 있는지 확인
+                const clickedNode = nodes.find(node => {
+                    const dx = node.x - x;
+                    const dy = node.y - y;
+                    return Math.sqrt(dx * dx + dy * dy) <= 50;
+                });
+
+                if (!clickedNode) {
+                    // 배경 더블클릭 시 노드 생성 메뉴 표시
+                    setCanvasContextMenu({
+                        visible: true,
+                        x: e.clientX,
+                        y: e.clientY
+                    });
+                }
             }
         };
 
@@ -245,6 +241,7 @@ export const useCanvas = ({
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
         canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('dblclick', handleDoubleClick);
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
         canvas.addEventListener('wheel', handleWheel, { passive: false });
@@ -483,6 +480,7 @@ export const useCanvas = ({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             canvas.removeEventListener('mousedown', handleMouseDown);
+            canvas.removeEventListener('dblclick', handleDoubleClick);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
             canvas.removeEventListener('wheel', handleWheel);
