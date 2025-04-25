@@ -850,6 +850,10 @@ export const useCanvas = ({
                     Math.pow(node.x - mouseX, 2) + Math.pow(node.y - mouseY, 2)
                 ) <= 50;
 
+                // 그룹 선택 상태에서 그룹에 속하지 않은 노드인지 확인
+                const isInSelectedGroup = selectedGroupRef.current?.nodeIds.includes(node.id) ?? true;
+                const opacity = isInSelectedGroup ? 1 : 0.3;
+
                 // 검은색 배경
                 ctx.fillStyle = 'black';
                 ctx.beginPath();
@@ -869,7 +873,7 @@ export const useCanvas = ({
                 // 호버 상태에 따른 그라데이션 색상 조절
                 const whiteColor = isHovered ? 100 : 255; // 호버 시 200, 기본 255
                 gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
-                gradient.addColorStop(1, `rgba(${whiteColor}, ${whiteColor}, ${whiteColor}, 1)`);
+                gradient.addColorStop(1, `rgba(${whiteColor}, ${whiteColor}, ${whiteColor}, ${opacity})`);
 
                 // 그라데이션 적용
                 ctx.fillStyle = gradient;
@@ -891,19 +895,19 @@ export const useCanvas = ({
                     const currentRadius = minRadius + (maxRadius - minRadius) * pulseProgress;
                     
                     // 투명도 계산 (펄스 진행도에 따라 0.4에서 0.6 사이로 변화)
-                    const opacity = 0.4 + (0.2 * pulseProgress);
+                    const radarOpacity = (0.4 + (0.2 * pulseProgress)) * opacity;
                     
                     // 레이더 원 그리기
                     ctx.beginPath();
                     ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, currentRadius, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${radarOpacity})`;
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 }
 
                 // 노드 텍스트
                 const textColor = isHovered ? 200 : 255; // 호버 시 200, 기본 255
-                ctx.fillStyle = `rgba(${textColor}, ${textColor}, ${textColor}, 1)`;
+                ctx.fillStyle = `rgba(${textColor}, ${textColor}, ${textColor}, ${opacity})`;
                 ctx.font = `${12 * scale}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
