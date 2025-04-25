@@ -101,8 +101,8 @@ export const useCanvas = ({
                 );
                 selectedGroupRef.current = null;
             }
-            // 컨트롤+G로 그룹 생성
-            if (e.ctrlKey && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
+            // Command+G로 그룹 생성
+            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
                 const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
                 if (selectedNodes.length > 0) {
                     // 그룹의 중심점 계산
@@ -174,8 +174,8 @@ export const useCanvas = ({
                 });
 
                 if (clickedNode) {
-                    if (e.ctrlKey) {
-                        // Ctrl+클릭: 노드 연결 시작
+                    if (e.ctrlKey || e.metaKey) {
+                        // Command+클릭: 노드 연결 시작
                         setIsConnecting(true);
                         setConnectingFrom(clickedNode.id);
                         setSelectedNode(clickedNode.id);
