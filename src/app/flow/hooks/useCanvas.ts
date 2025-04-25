@@ -468,26 +468,85 @@ export const useCanvas = ({
             }
         };
 
-        // 그룹 그리기 함수
+        // 최소 경계 원 계산 함수 추가
+        const calculateMinimumBoundingCircle = (points: { x: number; y: number }[]) => {
+            if (points.length === 0) return { centerX: 0, centerY: 0, radius: 0 };
+            if (points.length === 1) return { centerX: points[0].x, centerY: points[0].y, radius: 0 };
+
+            // 초기 원을 첫 두 점으로 설정
+            let centerX = (points[0].x + points[1].x) / 2;
+            let centerY = (points[0].y + points[1].y) / 2;
+            let radius = Math.sqrt(
+                Math.pow(points[0].x - centerX, 2) + Math.pow(points[0].y - centerY, 2)
+            );
+
+            // 각 점을 순회하면서 원을 확장
+            for (let i = 2; i < points.length; i++) {
+                const distance = Math.sqrt(
+                    Math.pow(points[i].x - centerX, 2) + Math.pow(points[i].y - centerY, 2)
+                );
+                
+                if (distance > radius) {
+                    // 새로운 점이 현재 원 밖에 있으면 원을 확장
+                    const dx = points[i].x - centerX;
+                    const dy = points[i].y - centerY;
+                    const newRadius = (radius + distance) / 2;
+                    const ratio = newRadius / distance;
+                    
+                    centerX = centerX + dx * (1 - ratio);
+                    centerY = centerY + dy * (1 - ratio);
+                    radius = newRadius;
+                }
+            }
+
+            return { centerX, centerY, radius };
+        };
+
+        // 그룹 그리기 함수 수정
         const drawGroups = () => {
+            // 그룹의 크기를 재계산하기 전에 모든 그룹의 크기를 초기화
+            groupsRef.current.forEach(group => {
+                group.centerX = 0;
+                group.centerY = 0;
+                group.radius = 0;
+            });
+
+            // 그룹의 크기를 재계산
             groupsRef.current.forEach(group => {
                 // 그룹에 속한 노드들 찾기
                 const groupNodes = nodes.filter(node => group.nodeIds.includes(node.id));
                 if (groupNodes.length === 0) return;
 
-                // 그룹의 중심점 재계산
-                const centerX = groupNodes.reduce((sum, node) => sum + node.x, 0) / groupNodes.length;
-                const centerY = groupNodes.reduce((sum, node) => sum + node.y, 0) / groupNodes.length;
+                // 그룹에 속한 다른 그룹들 찾기
+                const nestedGroups = groupsRef.current.filter(otherGroup => 
+                    otherGroup.id !== group.id && 
+                    otherGroup.nodeIds.some(nodeId => group.nodeIds.includes(nodeId))
+                );
 
-                // 그룹의 반경 재계산
-                const radius = Math.max(...groupNodes.map(node => 
-                    Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
-                )) + 100;
+                // 모든 요소(노드와 중첩된 그룹)의 위치를 고려하여 최소 경계 원 계산
+                const allPoints = [
+                    ...groupNodes.map(node => ({ x: node.x, y: node.y })),
+                    ...nestedGroups.map(g => [
+                        { x: g.centerX - g.radius, y: g.centerY }, // 왼쪽
+                        { x: g.centerX + g.radius, y: g.centerY }, // 오른쪽
+                        { x: g.centerX, y: g.centerY - g.radius }, // 위
+                        { x: g.centerX, y: g.centerY + g.radius }  // 아래
+                    ]).flat()
+                ];
 
-                // 그룹 정보 업데이트
+                const { centerX, centerY, radius } = calculateMinimumBoundingCircle(allPoints);
+
+                // 그룹 정보 업데이트 (여유 공간 추가)
                 group.centerX = centerX;
                 group.centerY = centerY;
-                group.radius = radius;
+                group.radius = radius + 100; // 여유 공간을 100px로 수정
+            });
+
+            // 그룹 그리기
+            groupsRef.current.forEach(group => {
+                // 그룹에 속한 노드들 찾기
+                const groupNodes = nodes.filter(node => group.nodeIds.includes(node.id));
+                if (groupNodes.length === 0) return;
 
                 // 그룹 원 그리기
                 let strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -506,9 +565,9 @@ export const useCanvas = ({
                 ctx.setLineDash([5, 5]);
                 ctx.beginPath();
                 ctx.arc(
-                    centerX * scale + offset.x,
-                    centerY * scale + offset.y,
-                    radius * scale,
+                    group.centerX * scale + offset.x,
+                    group.centerY * scale + offset.y,
+                    group.radius * scale,
                     0,
                     Math.PI * 2
                 );
@@ -522,8 +581,8 @@ export const useCanvas = ({
                 ctx.textBaseline = 'bottom';
                 ctx.fillText(
                     group.name,
-                    centerX * scale + offset.x,
-                    (centerY - radius) * scale + offset.y - 5
+                    group.centerX * scale + offset.x,
+                    (group.centerY - group.radius) * scale + offset.y - 5
                 );
             });
         };
