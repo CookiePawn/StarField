@@ -306,7 +306,30 @@ export const useCanvas = ({
             canvas.removeEventListener('dblclick', handleDoubleClick);
             canvas.removeEventListener('touchend', handleDoubleClick);
         };
-    }, [isMounted, offset, scale, isDragging, isDraggingNode, draggingNodeId, nodes, links, selectedNode, connectingFrom, mousePosition]);
+    }, [
+        isMounted,
+        offset,
+        scale,
+        isDragging,
+        isDraggingNode,
+        draggingNodeId,
+        nodes,
+        links,
+        selectedNode,
+        connectingFrom,
+        mousePosition,
+        setConnectingFrom,
+        setContextMenu,
+        setDraggingNodeId,
+        setIsDragging,
+        setIsDraggingNode,
+        setLinks,
+        setMousePosition,
+        setNodeContextMenu,
+        setNodes,
+        setOffset,
+        setSelectedNode
+    ]);
 
     return canvasRef;
 }; 

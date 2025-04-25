@@ -90,22 +90,19 @@ export const useCanvas = ({
                 setIsGrabbing(true);
                 canvas.style.cursor = 'grab';
             }
-            if (e.key === 'Backspace') {
-                if (selectedLinkRef.current) {
-                    setLinks(links.filter(link => 
-                        !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
-                    ));
-                    selectedLinkRef.current = null;
-                } else if (selectedGroupRef.current) {
-                    groupsRef.current = groupsRef.current.filter(group => 
-                        group.id !== selectedGroupRef.current?.id
-                    );
-                    selectedGroupRef.current = null;
-                }
+            if (e.key === 'Backspace' && selectedLinkRef.current) {
+                setLinks(links.filter(link => 
+                    !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
+                ));
+                selectedLinkRef.current = null;
+            } else if (e.key === 'Backspace' && selectedGroupRef.current) {
+                groupsRef.current = groupsRef.current.filter(group => 
+                    group.id !== selectedGroupRef.current?.id
+                );
+                selectedGroupRef.current = null;
             }
             // 컨트롤+G로 그룹 생성
             if (e.ctrlKey && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
-                e.preventDefault(); // 기본 동작 방지
                 const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
                 if (selectedNodes.length > 0) {
                     // 그룹의 중심점 계산
@@ -136,6 +133,25 @@ export const useCanvas = ({
                 setIsGrabbing(false);
                 canvas.style.cursor = 'default';
             }
+        };
+
+        // 그룹 선택 함수
+        const selectGroup = (x: number, y: number) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (x - rect.left - offset.x) / scale;
+            const mouseY = (y - rect.top - offset.y) / scale;
+
+            for (const group of groupsRef.current) {
+                const distance = Math.sqrt(
+                    Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
+                );
+                // 그룹 원의 두께를 고려하여 선택 영역 설정
+                if (Math.abs(distance - group.radius) <= 2.5) {
+                    selectedGroupRef.current = group;
+                    return;
+                }
+            }
+            selectedGroupRef.current = null;
         };
 
         // 마우스 이벤트 처리
@@ -188,7 +204,7 @@ export const useCanvas = ({
                     return; // 노드가 선택되었으면 링크 선택 검사를 하지 않음
                 }
 
-                // 노드가 선택되지 않았을 때 링크 선택 확인
+                // 노드가 선택되지 않았을 때만 링크 선택 확인
                 selectLink(e.clientX, e.clientY);
 
                 // 링크도 선택되지 않았을 때 그룹 선택 확인
@@ -377,25 +393,6 @@ export const useCanvas = ({
                 }
             }
             selectedLinkRef.current = null;
-        };
-
-        // 그룹 선택 함수
-        const selectGroup = (x: number, y: number) => {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = (x - rect.left - offset.x) / scale;
-            const mouseY = (y - rect.top - offset.y) / scale;
-
-            for (const group of groupsRef.current) {
-                const distance = Math.sqrt(
-                    Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
-                );
-                // 그룹 원의 두께를 고려하여 선택 영역 설정
-                if (Math.abs(distance - group.radius) <= 2.5) {
-                    selectedGroupRef.current = group;
-                    return;
-                }
-            }
-            selectedGroupRef.current = null;
         };
 
         // 선분과 점 사이의 거리 계산 함수
