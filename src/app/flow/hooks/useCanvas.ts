@@ -355,6 +355,22 @@ export const useCanvas = ({
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
+            // 트랙패드 핀치 줌 감지 (ctrlKey가 true인 경우)
+            if (e.ctrlKey) {
+                const delta = e.deltaY;
+                const newScale = Math.max(0.5, Math.min(2, scale - delta / 100));
+
+                // 마우스 포인터 위치를 기준으로 offset 조정
+                const worldX = (mouseX - offset.x) / scale;
+                const worldY = (mouseY - offset.y) / scale;
+                const newOffsetX = mouseX - worldX * newScale;
+                const newOffsetY = mouseY - worldY * newScale;
+
+                setScale(newScale);
+                setOffset({ x: newOffsetX, y: newOffsetY });
+                return;
+            }
+
             // 트랙패드 스크롤 감지 (deltaMode가 0인 경우)
             if (e.deltaMode === 0) {
                 // 스크롤 방향에 따라 offset 조정
