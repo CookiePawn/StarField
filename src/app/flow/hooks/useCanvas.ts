@@ -30,6 +30,14 @@ interface UseCanvasProps {
     setCanvasContextMenu: (menu: CanvasContextMenu) => void;
 }
 
+interface Group {
+    id: number;
+    nodeIds: number[];
+    centerX: number;
+    centerY: number;
+    radius: number;
+}
+
 export const useCanvas = ({
     isMounted,
     isGrabbing,
@@ -63,6 +71,7 @@ export const useCanvas = ({
     const selectedLinkRef = useRef<Link | null>(null);
     const dragBoxRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
     const selectedNodesRef = useRef<number[]>([]);
+    const groupsRef = useRef<Group[]>([]);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -85,6 +94,32 @@ export const useCanvas = ({
                     !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
                 ));
                 selectedLinkRef.current = null;
+            }
+            // 컨트롤+G로 그룹 생성
+            if (e.ctrlKey && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
+                e.preventDefault(); // 기본 동작 방지
+                const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
+                if (selectedNodes.length > 0) {
+                    // 그룹의 중심점 계산
+                    const centerX = selectedNodes.reduce((sum, node) => sum + node.x, 0) / selectedNodes.length;
+                    const centerY = selectedNodes.reduce((sum, node) => sum + node.y, 0) / selectedNodes.length;
+
+                    // 그룹의 반경 계산 (가장 먼 노드까지의 거리 + 여유 공간)
+                    const radius = Math.max(...selectedNodes.map(node => 
+                        Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
+                    )) + 50;
+
+                    // 새 그룹 생성
+                    const newGroup: Group = {
+                        id: Date.now(),
+                        nodeIds: selectedNodesRef.current,
+                        centerX,
+                        centerY,
+                        radius
+                    };
+
+                    groupsRef.current = [...groupsRef.current, newGroup];
+                }
             }
         };
 
@@ -379,6 +414,44 @@ export const useCanvas = ({
             }
         };
 
+        // 그룹 그리기 함수
+        const drawGroups = () => {
+            groupsRef.current.forEach(group => {
+                // 그룹에 속한 노드들 찾기
+                const groupNodes = nodes.filter(node => group.nodeIds.includes(node.id));
+                if (groupNodes.length === 0) return;
+
+                // 그룹의 중심점 재계산
+                const centerX = groupNodes.reduce((sum, node) => sum + node.x, 0) / groupNodes.length;
+                const centerY = groupNodes.reduce((sum, node) => sum + node.y, 0) / groupNodes.length;
+
+                // 그룹의 반경 재계산
+                const radius = Math.max(...groupNodes.map(node => 
+                    Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
+                )) + 100;
+
+                // 그룹 정보 업데이트
+                group.centerX = centerX;
+                group.centerY = centerY;
+                group.radius = radius;
+
+                // 그룹 원 그리기
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(
+                    centerX * scale + offset.x,
+                    centerY * scale + offset.y,
+                    radius * scale,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+        };
+
         // 배경과 노드 그리기
         const drawBackground = () => {
             // 캔버스 초기화
@@ -412,6 +485,9 @@ export const useCanvas = ({
 
             // 드래그 박스 그리기
             drawDragBox();
+
+            // 그룹 그리기
+            drawGroups();
 
             // 노드 그리기
             drawNodes();
