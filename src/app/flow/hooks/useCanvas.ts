@@ -37,6 +37,7 @@ interface Group {
     centerY: number;
     radius: number;
     name: string;
+    isEditing: boolean;
 }
 
 export const useCanvas = ({
@@ -108,6 +109,28 @@ export const useCanvas = ({
                 // 선택 초기화
                 selectedNodesRef.current = [];
                 setSelectedNode(null);
+            } else if (e.key === 'Enter') {
+                // 그룹 이름 편집 완료
+                const editingGroup = groupsRef.current.find(group => group.isEditing);
+                if (editingGroup) {
+                    editingGroup.isEditing = false;
+                }
+            } else if (e.key === 'Escape') {
+                // 그룹 이름 편집 취소
+                const editingGroup = groupsRef.current.find(group => group.isEditing);
+                if (editingGroup) {
+                    editingGroup.isEditing = false;
+                }
+            } else {
+                // 그룹 이름 편집 중 텍스트 입력
+                const editingGroup = groupsRef.current.find(group => group.isEditing);
+                if (editingGroup) {
+                    if (e.key.length === 1 && editingGroup.name.length < 30) {
+                        editingGroup.name += e.key;
+                    } else if (e.key === 'Backspace') {
+                        editingGroup.name = editingGroup.name.slice(0, -1);
+                    }
+                }
             }
             // Command+G로 그룹 생성
             if ((e.ctrlKey || e.metaKey) && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
@@ -129,7 +152,8 @@ export const useCanvas = ({
                         centerX,
                         centerY,
                         radius,
-                        name: `Group ${groupsRef.current.length + 1}`
+                        name: `Group ${groupsRef.current.length + 1}`,
+                        isEditing: false
                     };
 
                     groupsRef.current = [...groupsRef.current, newGroup];
@@ -321,10 +345,7 @@ export const useCanvas = ({
                 });
 
                 if (clickedGroup) {
-                    const newName = prompt('그룹 이름을 입력하세요:', clickedGroup.name);
-                    if (newName !== null) {
-                        clickedGroup.name = newName;
-                    }
+                    clickedGroup.isEditing = true;
                     return;
                 }
 
@@ -702,11 +723,37 @@ export const useCanvas = ({
                 ctx.font = `${14 * scale}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(
-                    group.name,
-                    group.centerX * scale + offset.x,
-                    (group.centerY - group.radius) * scale + offset.y - 20 * scale
-                );
+                
+                if (group.isEditing) {
+                    // 편집 중인 경우 텍스트 입력 필드 스타일
+                    const textWidth = ctx.measureText(group.name).width;
+                    const padding = 20 * scale; // 좌우 패딩
+                    const minWidth = 100 * scale; // 최소 너비
+                    const maxWidth = 300 * scale; // 최대 너비
+                    const inputWidth = Math.min(Math.max(textWidth + padding, minWidth), maxWidth);
+
+                    ctx.fillStyle = '#222222';
+                    ctx.fillRect(
+                        (group.centerX - inputWidth / 2) + offset.x,
+                        (group.centerY - group.radius - 30) * scale + offset.y,
+                        inputWidth,
+                        30 * scale
+                    );
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(
+                        group.name,
+                        group.centerX * scale + offset.x,
+                        (group.centerY - group.radius) * scale + offset.y - 20 * scale
+                    );
+                } else {
+                    // 일반 텍스트 표시
+                    ctx.fillStyle = strokeStyle;
+                    ctx.fillText(
+                        group.name,
+                        group.centerX * scale + offset.x,
+                        (group.centerY - group.radius) * scale + offset.y - 20 * scale
+                    );
+                }
             });
         };
 
