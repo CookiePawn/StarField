@@ -178,6 +178,29 @@ export const useCanvas = ({
                         selectedNodesRef.current.splice(index, 1);
                     }
                     setSelectedNode(selectedNodesRef.current.length === 1 ? selectedNodesRef.current[0] : null);
+                } else if (e.altKey) {
+                    // Option/Alt+클릭: 노드 복사
+                    const newNode = {
+                        ...clickedNode,
+                        id: Date.now(),
+                        x: clickedNode.x,
+                        y: clickedNode.y
+                    };
+                    setNodes([...nodes, newNode]);
+
+                    // 노드가 속한 그룹 찾기
+                    const nodeGroup = groupsRef.current.find(group => 
+                        group.nodeIds.includes(clickedNode.id)
+                    );
+                    
+                    // 노드가 그룹에 속해있다면 복제된 노드도 같은 그룹에 추가
+                    if (nodeGroup) {
+                        nodeGroup.nodeIds.push(newNode.id);
+                    }
+
+                    setDraggingNode(newNode.id);
+                    setIsDragging(true);
+                    return;
                 } else {
                     // 일반 클릭: 단일 노드 선택
                     selectedNodesRef.current = [clickedNode.id];
@@ -348,7 +371,7 @@ export const useCanvas = ({
             setMousePosition({ x: e.clientX, y: e.clientY });
         };
 
-        const handleMouseUp = () => {
+        const handleMouseUp = (e: MouseEvent) => {
             if (dragBoxRef.current) {
                 // 드래그 박스 안의 노드 선택
                 const rect = canvas.getBoundingClientRect();
