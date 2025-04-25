@@ -59,6 +59,7 @@ export const useCanvas = ({
     setCanvasContextMenu
 }: UseCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationFrameRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -135,11 +136,42 @@ export const useCanvas = ({
                 });
 
                 if (clickedNode) {
-                    setIsDragging(true);
-                    setDraggingNode(clickedNode.id);
-                    setSelectedNode(clickedNode.id);
+                    if (e.ctrlKey && !isConnecting) {
+                        // Ctrl+클릭: 노드 연결 시작
+                        setIsConnecting(true);
+                        setConnectingFrom(clickedNode.id);
+                        setSelectedNode(clickedNode.id);
+                    } else if (isConnecting) {
+                        // 연결 모드에서 노드 클릭: 연결 완료
+                        if (clickedNode.id !== connectingFrom && connectingFrom !== null) {
+                            // 이미 링크가 존재하는지 확인
+                            const linkExists = links.some(link =>
+                                (link.from === connectingFrom && link.to === clickedNode.id) ||
+                                (link.from === clickedNode.id && link.to === connectingFrom)
+                            );
+
+                            if (!linkExists) {
+                                setLinks([...links, { from: connectingFrom, to: clickedNode.id }]);
+                            }
+                        }
+                        setIsConnecting(false);
+                        setConnectingFrom(null);
+                        setSelectedNode(null);
+                    } else {
+                        // 일반 클릭: 노드 드래그 시작
+                        setIsDragging(true);
+                        setDraggingNode(clickedNode.id);
+                        setSelectedNode(clickedNode.id);
+                    }
                 } else {
-                    setSelectedNode(null);
+                    // 배경 클릭 시 링크 연결 모드 취소
+                    if (isConnecting) {
+                        setIsConnecting(false);
+                        setConnectingFrom(null);
+                        setSelectedNode(null);
+                    } else {
+                        setSelectedNode(null);
+                    }
                 }
             } else {
                 setIsDragging(true);
@@ -177,55 +209,6 @@ export const useCanvas = ({
             canvas.style.cursor = isGrabbing ? 'grab' : 'default';
         };
 
-        // 노드 클릭 이벤트 처리
-        const handleNodeClick = (nodeId: number) => {
-            if (!isDragging) {  // 드래그 중이 아닐 때만 클릭 이벤트 처리
-                if (!isConnecting) {
-                    // 연결 시작
-                    setIsConnecting(true);
-                    setConnectingFrom(nodeId);
-                    setSelectedNode(nodeId);
-                } else {
-                    // 연결 완료
-                    if (nodeId !== connectingFrom && connectingFrom !== null) {
-                        // 이미 링크가 존재하는지 확인
-                        const linkExists = links.some(link =>
-                            (link.from === connectingFrom && link.to === nodeId) ||
-                            (link.from === nodeId && link.to === connectingFrom)
-                        );
-
-                        if (!linkExists) {
-                            setLinks([...links, { from: connectingFrom, to: nodeId }]);
-                        } else {
-                            alert('이미 연결되어있습니다.');
-                        }
-                    }
-                    setIsConnecting(false);
-                    setConnectingFrom(null);
-                    setSelectedNode(null);
-                }
-            }
-        };
-
-        // 노드 더블클릭 이벤트 처리
-        const handleNodeDoubleClick = (e: MouseEvent) => {
-            if (!isDragging) {  // 드래그 중이 아닐 때만 더블클릭 이벤트 처리
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left - offset.x) / scale;
-                const y = (e.clientY - rect.top - offset.y) / scale;
-
-                const clickedNode = nodes.find(node => {
-                    const dx = node.x - x;
-                    const dy = node.y - y;
-                    return Math.sqrt(dx * dx + dy * dy) <= 50;
-                });
-
-                if (clickedNode) {
-                    handleNodeClick(clickedNode.id);
-                }
-            }
-        };
-
         // 휠 이벤트 처리
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
@@ -254,7 +237,6 @@ export const useCanvas = ({
         canvas.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
-        canvas.addEventListener('dblclick', handleNodeDoubleClick);
         canvas.addEventListener('wheel', handleWheel, { passive: false });
 
         // 캔버스 크기를 화면 크기로 설정
@@ -268,6 +250,9 @@ export const useCanvas = ({
 
         // 배경과 노드 그리기
         const drawBackground = () => {
+            // 캔버스 초기화
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             // 검은색 배경
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -298,10 +283,40 @@ export const useCanvas = ({
                 const fromNode = nodes.find(n => n.id === link.from);
                 const toNode = nodes.find(n => n.id === link.to);
                 if (fromNode && toNode) {
+                    // 링크 선 그리기
                     ctx.beginPath();
                     ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
                     ctx.lineTo(toNode.x * scale + offset.x, toNode.y * scale + offset.y);
                     ctx.stroke();
+
+                    // 화살표 그리기
+                    const angle = Math.atan2(
+                        toNode.y * scale + offset.y - (fromNode.y * scale + offset.y),
+                        toNode.x * scale + offset.x - (fromNode.x * scale + offset.x)
+                    );
+
+                    // 링크 중앙점 계산
+                    const centerX = (fromNode.x * scale + offset.x + toNode.x * scale + offset.x) / 2;
+                    const centerY = (fromNode.y * scale + offset.y + toNode.y * scale + offset.y) / 2;
+
+                    // 화살표 크기 설정
+                    const arrowSize = 15 * scale;
+                    const arrowAngle = Math.PI / 6; // 30도
+
+                    // 화살표 그리기
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(
+                        centerX - arrowSize * Math.cos(angle - arrowAngle),
+                        centerY - arrowSize * Math.sin(angle - arrowAngle)
+                    );
+                    ctx.lineTo(
+                        centerX - arrowSize * Math.cos(angle + arrowAngle),
+                        centerY - arrowSize * Math.sin(angle + arrowAngle)
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = 'gray';
+                    ctx.fill();
                 }
             });
 
@@ -323,41 +338,74 @@ export const useCanvas = ({
 
             // 노드 그리기
             nodes.forEach(node => {
-                // 노드 배경
-                ctx.fillStyle = 'white';
+                // 검은색 배경
+                ctx.fillStyle = 'black';
                 ctx.beginPath();
                 ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
                 ctx.fill();
 
-                // 노드 테두리
+                // 흰색 그라데이션 생성
+                const gradient = ctx.createRadialGradient(
+                    node.x * scale + offset.x,
+                    node.y * scale + offset.y,
+                    0,
+                    node.x * scale + offset.x,
+                    node.y * scale + offset.y,
+                    50 * scale
+                );
+                gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+
+                // 그라데이션 적용
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 선택된 노드의 레이더 애니메이션
                 if (selectedNode === node.id) {
-                    ctx.strokeStyle = 'darkgreen';
-                    ctx.lineWidth = 4;
+                    const time = Date.now() / 1000;
+                    const pulseRadius = (time % 2) * 20 * scale;
+                    
+                    // 레이더 원 그리기
+                    ctx.beginPath();
+                    ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale + pulseRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${1 - pulseRadius / (20 * scale)})`;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
                 }
 
                 // 노드 텍스트
-                ctx.fillStyle = 'black';
+                ctx.fillStyle = 'white';
                 ctx.font = `${12 * scale}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(node.label, node.x * scale + offset.x, node.y * scale + offset.y);
             });
+
+            // 다음 프레임 요청
+            animationFrameRef.current = requestAnimationFrame(drawBackground);
         };
 
+        // 초기 그리기 시작
         drawBackground();
 
         return () => {
+            // 이벤트 리스너 정리
             window.removeEventListener('resize', resizeCanvas);
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             canvas.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
-            canvas.removeEventListener('dblclick', handleNodeDoubleClick);
             canvas.removeEventListener('wheel', handleWheel);
+            
+            // 애니메이션 프레임 취소
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
         };
-    }, [isGrabbing, isDragging, offset, scale, nodes, links, selectedNode, draggingNode, isConnecting, connectingFrom, mousePosition, isMounted]);
+    }, [isMounted, isGrabbing, isDragging, offset, scale, nodes, links, selectedNode, draggingNode, isConnecting, connectingFrom, mousePosition]);
 
     return canvasRef;
 }; 
