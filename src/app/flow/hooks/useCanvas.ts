@@ -130,23 +130,23 @@ export const useCanvas = ({
         };
 
         // 그룹 선택 함수
-        const selectGroup = (x: number, y: number) => {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = (x - rect.left - offset.x) / scale;
-            const mouseY = (y - rect.top - offset.y) / scale;
+        // const selectGroup = (x: number, y: number) => {
+        //     const rect = canvas.getBoundingClientRect();
+        //     const mouseX = (x - rect.left - offset.x) / scale;
+        //     const mouseY = (y - rect.top - offset.y) / scale;
 
-            for (const group of groupsRef.current) {
-                const distance = Math.sqrt(
-                    Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
-                );
-                // 그룹 원의 두께를 고려하여 선택 영역 설정
-                if (Math.abs(distance - group.radius) <= 2.5) {
-                    selectedGroupRef.current = group;
-                    return;
-                }
-            }
-            selectedGroupRef.current = null;
-        };
+        //     for (const group of groupsRef.current) {
+        //         const distance = Math.sqrt(
+        //             Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
+        //         );
+        //         // 그룹 원의 두께를 고려하여 선택 영역 설정
+        //         if (Math.abs(distance - group.radius) <= 2.5) {
+        //             selectedGroupRef.current = group;
+        //             return;
+        //         }
+        //     }
+        //     selectedGroupRef.current = null;
+        // };
 
         // 마우스 이벤트 처리
         const handleMouseDown = (e: MouseEvent) => {
@@ -371,7 +371,7 @@ export const useCanvas = ({
             setMousePosition({ x: e.clientX, y: e.clientY });
         };
 
-        const handleMouseUp = (e: MouseEvent) => {
+        const handleMouseUp = () => {
             if (dragBoxRef.current) {
                 // 드래그 박스 안의 노드 선택
                 const rect = canvas.getBoundingClientRect();
