@@ -508,11 +508,11 @@ export const useCanvas = ({
                 group.radius = radius;
 
                 // 그룹 원 그리기
-                let strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                let strokeStyle = 'white';
                 let lineWidth = 2;
 
                 if (selectedGroupRef.current?.id === group.id) {
-                    strokeStyle = 'rgba(255, 255, 255, 1)';
+                    strokeStyle = 'rgba(100, 100, 100, 1)';
                     lineWidth = 3;
                 }
 
@@ -578,7 +578,7 @@ export const useCanvas = ({
 
         // 링크 그리기 수정
         const drawLinks = () => {
-            ctx.strokeStyle = 'gray';
+            ctx.strokeStyle = 'white';
             ctx.lineWidth = 2;
             links.forEach(link => {
                 const fromNode = nodes.find(n => n.id === link.from);
@@ -588,10 +588,10 @@ export const useCanvas = ({
                     if (selectedLinkRef.current && 
                         selectedLinkRef.current.from === link.from && 
                         selectedLinkRef.current.to === link.to) {
-                        ctx.strokeStyle = 'white';
+                        ctx.strokeStyle = 'rgba(100, 100, 100, 1)';
                         ctx.lineWidth = 3;
                     } else {
-                        ctx.strokeStyle = 'gray';
+                        ctx.strokeStyle = 'white';
                         ctx.lineWidth = 2;
                     }
 
@@ -627,7 +627,10 @@ export const useCanvas = ({
                         centerY - arrowSize * Math.sin(angle + arrowAngle)
                     );
                     ctx.closePath();
-                    ctx.fillStyle = 'gray';
+                    ctx.fillStyle = selectedLinkRef.current && 
+                        selectedLinkRef.current.from === link.from && 
+                        selectedLinkRef.current.to === link.to ? 
+                        'rgba(100, 100, 100, 1)' : 'white';
                     ctx.fill();
                 }
             });
@@ -643,9 +646,11 @@ export const useCanvas = ({
                     ctx.beginPath();
                     ctx.moveTo(fromNode.x * scale + offset.x, fromNode.y * scale + offset.y);
                     ctx.lineTo(mouseX * scale + offset.x, mouseY * scale + offset.y);
-                    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
                     ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]); // 점선 패턴 설정
                     ctx.stroke();
+                    ctx.setLineDash([]); // 점선 패턴 초기화
                 }
             }
         };
