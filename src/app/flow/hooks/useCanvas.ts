@@ -783,15 +783,21 @@ export const useCanvas = ({
                     const arrowAngle = Math.PI / 6; // 30도
 
                     // 화살표 그리기
+                    const offsetX = (arrowSize * 0.5) * Math.cos(angle);
+                    const offsetY = (arrowSize * 0.5) * Math.sin(angle);
+                    
                     ctx.beginPath();
-                    ctx.moveTo(centerX, centerY);
-                    ctx.lineTo(
-                        centerX - arrowSize * Math.cos(angle - arrowAngle),
-                        centerY - arrowSize * Math.sin(angle - arrowAngle)
+                    ctx.moveTo(
+                        centerX + offsetX,
+                        centerY + offsetY
                     );
                     ctx.lineTo(
-                        centerX - arrowSize * Math.cos(angle + arrowAngle),
-                        centerY - arrowSize * Math.sin(angle + arrowAngle)
+                        centerX - arrowSize * Math.cos(angle - arrowAngle) + offsetX,
+                        centerY - arrowSize * Math.sin(angle - arrowAngle) + offsetY
+                    );
+                    ctx.lineTo(
+                        centerX - arrowSize * Math.cos(angle + arrowAngle) + offsetX,
+                        centerY - arrowSize * Math.sin(angle + arrowAngle) + offsetY
                     );
                     ctx.closePath();
                     ctx.fillStyle = selectedLinkRef.current && 
