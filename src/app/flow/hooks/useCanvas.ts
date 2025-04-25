@@ -97,6 +97,17 @@ export const useCanvas = ({
                     group.id !== selectedGroupRef.current?.id
                 );
                 selectedGroupRef.current = null;
+            } else if (e.key === 'Backspace' && selectedNodesRef.current.length > 0) {
+                // 선택된 노드들 제거
+                setNodes(nodes.filter(node => !selectedNodesRef.current.includes(node.id)));
+                // 선택된 노드들과 관련된 링크들도 제거
+                setLinks(links.filter(link => 
+                    !selectedNodesRef.current.includes(link.from) && 
+                    !selectedNodesRef.current.includes(link.to)
+                ));
+                // 선택 초기화
+                selectedNodesRef.current = [];
+                setSelectedNode(null);
             }
             // Command+G로 그룹 생성
             if ((e.ctrlKey || e.metaKey) && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
