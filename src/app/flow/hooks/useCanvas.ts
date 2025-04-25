@@ -123,7 +123,7 @@ export const useCanvas = ({
             }
         };
 
-        const handleKeyUp = (e: KeyboardEvent) => {
+        const handleKeyUp = () => {
             // 키보드 이벤트 처리 제거
         };
 
