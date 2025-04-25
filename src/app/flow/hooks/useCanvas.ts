@@ -85,11 +85,6 @@ export const useCanvas = ({
 
         // 스페이스바 이벤트 처리
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                setIsGrabbing(true);
-                canvas.style.cursor = 'grab';
-            }
             if (e.key === 'Backspace' && selectedLinkRef.current) {
                 setLinks(links.filter(link => 
                     !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
@@ -129,10 +124,7 @@ export const useCanvas = ({
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.code === 'Space') {
-                setIsGrabbing(false);
-                canvas.style.cursor = 'default';
-            }
+            // 키보드 이벤트 처리 제거
         };
 
         // 그룹 선택 함수
@@ -160,69 +152,68 @@ export const useCanvas = ({
             setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
             setCanvasContextMenu({ visible: false, x: 0, y: 0 });
 
-            if (!isGrabbing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left - offset.x) / scale;
-                const y = (e.clientY - rect.top - offset.y) / scale;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left - offset.x) / scale;
+            const y = (e.clientY - rect.top - offset.y) / scale;
 
-                // 먼저 노드 선택 확인
-                const clickedNode = nodes.find(node => {
-                    if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
-                    const dx = node.x - x;
-                    const dy = node.y - y;
-                    return Math.sqrt(dx * dx + dy * dy) <= 50;
-                });
+            // 먼저 노드 선택 확인
+            const clickedNode = nodes.find(node => {
+                if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
+                const dx = node.x - x;
+                const dy = node.y - y;
+                return Math.sqrt(dx * dx + dy * dy) <= 50;
+            });
 
-                if (clickedNode) {
-                    if (e.ctrlKey || e.metaKey) {
-                        // Command/Control+드래그: 노드 연결 시작
-                        setIsConnecting(true);
-                        setConnectingFrom(clickedNode.id);
-                        setSelectedNode(clickedNode.id);
-                        setIsDragging(true);
-                    } else {
-                        // 일반 클릭: 노드 드래그 시작
-                        setIsDragging(true);
-                        setDraggingNode(clickedNode.id);
-                        setSelectedNode(clickedNode.id);
-                    }
-                    return; // 노드가 선택되었으면 링크 선택 검사를 하지 않음
-                }
-
-                // 노드가 선택되지 않았을 때만 링크 선택 확인
-                selectLink(e.clientX, e.clientY);
-
-                // 링크도 선택되지 않았을 때 그룹 선택 확인
-                if (!selectedLinkRef.current) {
-                    selectGroup(e.clientX, e.clientY);
-                }
-
-                // 배경 클릭 시 드래그 박스 시작
-                if (!selectedLinkRef.current && !selectedGroupRef.current) {
-                    dragBoxRef.current = {
-                        startX: e.clientX,
-                        startY: e.clientY,
-                        endX: e.clientX,
-                        endY: e.clientY
-                    };
-                }
-
-                // 배경 클릭 시 링크 연결 모드 취소
-                if (isConnecting) {
-                    setIsConnecting(false);
-                    setConnectingFrom(null);
-                    setSelectedNode(null);
-                    setIsDragging(false);
+            if (clickedNode) {
+                if (e.ctrlKey || e.metaKey) {
+                    // Command/Control+드래그: 노드 연결 시작
+                    setIsConnecting(true);
+                    setConnectingFrom(clickedNode.id);
+                    setSelectedNode(clickedNode.id);
+                    setIsDragging(true);
                 } else {
-                    setSelectedNode(null);
+                    // 일반 클릭: 노드 드래그 시작
+                    setIsDragging(true);
+                    setDraggingNode(clickedNode.id);
+                    setSelectedNode(clickedNode.id);
                 }
-            } else {
+                return; // 노드가 선택되었으면 링크 선택 검사를 하지 않음
+            }
+
+            // 노드가 선택되지 않았을 때만 링크 선택 확인
+            selectLink(e.clientX, e.clientY);
+
+            // 링크도 선택되지 않았을 때 그룹 선택 확인
+            if (!selectedLinkRef.current) {
+                selectGroup(e.clientX, e.clientY);
+            }
+
+            // 배경 클릭 시 드래그 박스 시작 (Control/Command 키를 누른 상태에서만)
+            if (!selectedLinkRef.current && !selectedGroupRef.current && (e.ctrlKey || e.metaKey)) {
+                dragBoxRef.current = {
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    endX: e.clientX,
+                    endY: e.clientY
+                };
+            } else if (!selectedLinkRef.current && !selectedGroupRef.current) {
+                // Control/Command 키를 누르지 않은 상태에서 배경 클릭 시 캔버스 드래그 시작
                 setIsDragging(true);
                 canvas.style.cursor = 'grabbing';
                 dragStart.current = {
                     x: e.clientX - offset.x,
                     y: e.clientY - offset.y
                 };
+            }
+
+            // 배경 클릭 시 링크 연결 모드 취소
+            if (isConnecting) {
+                setIsConnecting(false);
+                setConnectingFrom(null);
+                setSelectedNode(null);
+                setIsDragging(false);
+            } else {
+                setSelectedNode(null);
             }
         };
 
@@ -262,8 +253,8 @@ export const useCanvas = ({
                 setNodes(nodes.map(node =>
                     node.id === draggingNode ? { ...node, x: newX, y: newY } : node
                 ));
-            } else if (isDragging && isGrabbing) {
-                // 화면 드래그
+            } else if (isDragging && !isConnecting) {
+                // 캔버스 드래그
                 setOffset({
                     x: e.clientX - dragStart.current.x,
                     y: e.clientY - dragStart.current.y
@@ -346,7 +337,7 @@ export const useCanvas = ({
                 setConnectingFrom(null);
                 setSelectedNode(null);
             }
-            canvas.style.cursor = isGrabbing ? 'grab' : 'default';
+            canvas.style.cursor = 'default';
         };
 
         // 휠 이벤트 처리
