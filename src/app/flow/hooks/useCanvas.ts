@@ -61,6 +61,7 @@ export const useCanvas = ({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number | undefined>(undefined);
     const selectedLinkRef = useRef<Link | null>(null);
+    const dragBoxRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -146,6 +147,16 @@ export const useCanvas = ({
                 // 노드가 선택되지 않았을 때만 링크 선택 확인
                 selectLink(e.clientX, e.clientY);
 
+                // 배경 클릭 시 드래그 박스 시작
+                if (!selectedLinkRef.current) {
+                    dragBoxRef.current = {
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        endX: e.clientX,
+                        endY: e.clientY
+                    };
+                }
+
                 // 배경 클릭 시 링크 연결 모드 취소
                 if (isConnecting) {
                     setIsConnecting(false);
@@ -204,12 +215,40 @@ export const useCanvas = ({
                     x: e.clientX - dragStart.current.x,
                     y: e.clientY - dragStart.current.y
                 });
+            } else if (dragBoxRef.current) {
+                // 드래그 박스 업데이트
+                dragBoxRef.current.endX = e.clientX;
+                dragBoxRef.current.endY = e.clientY;
             }
             // 마우스 위치 업데이트
             setMousePosition({ x: e.clientX, y: e.clientY });
         };
 
-        const handleMouseUp = (/*e: MouseEvent*/) => {
+        const handleMouseUp = (e: MouseEvent) => {
+            if (dragBoxRef.current) {
+                // 드래그 박스 안의 노드 선택
+                const rect = canvas.getBoundingClientRect();
+                const startX = (dragBoxRef.current.startX - rect.left - offset.x) / scale;
+                const startY = (dragBoxRef.current.startY - rect.top - offset.y) / scale;
+                const endX = (dragBoxRef.current.endX - rect.left - offset.x) / scale;
+                const endY = (dragBoxRef.current.endY - rect.top - offset.y) / scale;
+
+                const minX = Math.min(startX, endX);
+                const maxX = Math.max(startX, endX);
+                const minY = Math.min(startY, endY);
+                const maxY = Math.max(startY, endY);
+
+                const selectedNodes = nodes.filter(node => 
+                    node.x >= minX && node.x <= maxX && node.y >= minY && node.y <= maxY
+                );
+
+                if (selectedNodes.length > 0) {
+                    setSelectedNode(selectedNodes[0].id);
+                }
+
+                dragBoxRef.current = null;
+            }
+
             setIsDragging(false);
             setDraggingNode(null);
             canvas.style.cursor = isGrabbing ? 'grab' : 'default';
@@ -315,6 +354,22 @@ export const useCanvas = ({
             return Math.sqrt(dx * dx + dy * dy);
         };
 
+        // 드래그 박스 그리기
+        const drawDragBox = () => {
+            if (dragBoxRef.current) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(
+                    dragBoxRef.current.startX,
+                    dragBoxRef.current.startY,
+                    dragBoxRef.current.endX - dragBoxRef.current.startX,
+                    dragBoxRef.current.endY - dragBoxRef.current.startY
+                );
+                ctx.setLineDash([]);
+            }
+        };
+
         // 배경과 노드 그리기
         const drawBackground = () => {
             // 캔버스 초기화
@@ -345,6 +400,9 @@ export const useCanvas = ({
 
             // 링크 그리기
             drawLinks();
+
+            // 드래그 박스 그리기
+            drawDragBox();
 
             // 노드 그리기
             nodes.forEach(node => {
