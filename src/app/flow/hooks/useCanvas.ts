@@ -36,6 +36,7 @@ interface Group {
     centerX: number;
     centerY: number;
     radius: number;
+    name: string;
 }
 
 export const useCanvas = ({
@@ -72,6 +73,8 @@ export const useCanvas = ({
     const dragBoxRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
     const selectedNodesRef = useRef<number[]>([]);
     const groupsRef = useRef<Group[]>([]);
+    const selectedGroupRef = useRef<Group | null>(null);
+    const hoveredGroupRef = useRef<Group | null>(null);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -89,11 +92,18 @@ export const useCanvas = ({
                 setIsGrabbing(true);
                 canvas.style.cursor = 'grab';
             }
-            if (e.key === 'Backspace' && selectedLinkRef.current) {
-                setLinks(links.filter(link => 
-                    !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
-                ));
-                selectedLinkRef.current = null;
+            if (e.key === 'Backspace') {
+                if (selectedLinkRef.current) {
+                    setLinks(links.filter(link => 
+                        !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
+                    ));
+                    selectedLinkRef.current = null;
+                } else if (selectedGroupRef.current) {
+                    groupsRef.current = groupsRef.current.filter(group => 
+                        group.id !== selectedGroupRef.current?.id
+                    );
+                    selectedGroupRef.current = null;
+                }
             }
             // 컨트롤+G로 그룹 생성
             if (e.ctrlKey && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
@@ -107,7 +117,7 @@ export const useCanvas = ({
                     // 그룹의 반경 계산 (가장 먼 노드까지의 거리 + 여유 공간)
                     const radius = Math.max(...selectedNodes.map(node => 
                         Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
-                    )) + 50;
+                    )) + 100;
 
                     // 새 그룹 생성
                     const newGroup: Group = {
@@ -115,7 +125,8 @@ export const useCanvas = ({
                         nodeIds: selectedNodesRef.current,
                         centerX,
                         centerY,
-                        radius
+                        radius,
+                        name: `Group ${groupsRef.current.length + 1}`
                     };
 
                     groupsRef.current = [...groupsRef.current, newGroup];
@@ -180,11 +191,16 @@ export const useCanvas = ({
                     return; // 노드가 선택되었으면 링크 선택 검사를 하지 않음
                 }
 
-                // 노드가 선택되지 않았을 때만 링크 선택 확인
+                // 노드가 선택되지 않았을 때 링크 선택 확인
                 selectLink(e.clientX, e.clientY);
 
-                // 배경 클릭 시 드래그 박스 시작
+                // 링크도 선택되지 않았을 때 그룹 선택 확인
                 if (!selectedLinkRef.current) {
+                    selectGroup(e.clientX, e.clientY);
+                }
+
+                // 배경 클릭 시 드래그 박스 시작
+                if (!selectedLinkRef.current && !selectedGroupRef.current) {
                     dragBoxRef.current = {
                         startX: e.clientX,
                         startY: e.clientY,
@@ -256,6 +272,25 @@ export const useCanvas = ({
                 dragBoxRef.current.endX = e.clientX;
                 dragBoxRef.current.endY = e.clientY;
             }
+
+            // 호버된 그룹 확인 (점선 근처에서만 호버 효과)
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left - offset.x) / scale;
+            const mouseY = (e.clientY - rect.top - offset.y) / scale;
+
+            let foundHoveredGroup = null;
+            for (const group of groupsRef.current) {
+                const distance = Math.sqrt(
+                    Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
+                );
+                // 그룹 원의 두께를 고려하여 호버 영역 설정 (점선의 두께 2.5px 고려)
+                if (Math.abs(distance - group.radius) <= 2.5) {
+                    foundHoveredGroup = group;
+                    break;
+                }
+            }
+            hoveredGroupRef.current = foundHoveredGroup;
+
             // 마우스 위치 업데이트
             setMousePosition({ x: e.clientX, y: e.clientY });
         };
@@ -366,6 +401,25 @@ export const useCanvas = ({
             selectedLinkRef.current = null;
         };
 
+        // 그룹 선택 함수 수정
+        const selectGroup = (x: number, y: number) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (x - rect.left - offset.x) / scale;
+            const mouseY = (y - rect.top - offset.y) / scale;
+
+            for (const group of groupsRef.current) {
+                const distance = Math.sqrt(
+                    Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
+                );
+                // 그룹 원의 두께를 고려하여 선택 영역 설정 (점선의 두께 2.5px 고려)
+                if (Math.abs(distance - group.radius) <= 2.5) {
+                    selectedGroupRef.current = group;
+                    return;
+                }
+            }
+            selectedGroupRef.current = null;
+        };
+
         // 선분과 점 사이의 거리 계산 함수
         const distanceToLine = (x: number, y: number, x1: number, y1: number, x2: number, y2: number) => {
             const A = x - x1;
@@ -436,8 +490,19 @@ export const useCanvas = ({
                 group.radius = radius;
 
                 // 그룹 원 그리기
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.lineWidth = 2;
+                let strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                let lineWidth = 2;
+
+                if (selectedGroupRef.current?.id === group.id) {
+                    strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    lineWidth = 3;
+                } else if (hoveredGroupRef.current?.id === group.id) {
+                    strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                    lineWidth = 2.5;
+                }
+
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = lineWidth;
                 ctx.setLineDash([5, 5]);
                 ctx.beginPath();
                 ctx.arc(
@@ -449,6 +514,17 @@ export const useCanvas = ({
                 );
                 ctx.stroke();
                 ctx.setLineDash([]);
+
+                // 그룹 이름 그리기
+                ctx.fillStyle = strokeStyle;
+                ctx.font = `${12 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(
+                    group.name,
+                    centerX * scale + offset.x,
+                    (centerY - radius) * scale + offset.y - 5
+                );
             });
         };
 
