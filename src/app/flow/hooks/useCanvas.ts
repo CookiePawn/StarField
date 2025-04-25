@@ -610,7 +610,7 @@ export const useCanvas = ({
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // 흰색 점 그리기
-            ctx.fillStyle = '#ededed';
+            ctx.fillStyle = '#777777'; // 더 밝은 회색으로 변경
             const dotSize = 1;
             const spacing = 50;
 
@@ -753,7 +753,7 @@ export const useCanvas = ({
                 // 호버 상태에 따른 그라데이션 색상 조절
                 const whiteColor = isHovered ? 100 : 255; // 호버 시 200, 기본 255
                 gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
-                gradient.addColorStop(1, `rgba(${whiteColor}, ${whiteColor}, ${whiteColor}, 0.8)`);
+                gradient.addColorStop(1, `rgba(${whiteColor}, ${whiteColor}, ${whiteColor}, 1)`);
 
                 // 그라데이션 적용
                 ctx.fillStyle = gradient;
