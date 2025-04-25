@@ -318,6 +318,14 @@ export const useCanvas = ({
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
                 
+                // Control/Command 키를 누른 상태에서 노드 드래그 시 링크 연결 모드 시작
+                if (e.ctrlKey || e.metaKey) {
+                    setIsConnecting(true);
+                    setConnectingFrom(draggingNode);
+                    setDraggingNode(null);
+                    return;
+                }
+                
                 // 노드 위치 업데이트 (드래그 중에만)
                 setNodes(nodes.map(node =>
                     node.id === draggingNode ? { ...node, x: newX, y: newY } : node
