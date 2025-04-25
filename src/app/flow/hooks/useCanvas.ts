@@ -194,6 +194,27 @@ export const useCanvas = ({
             const x = (e.clientX - rect.left - offset.x) / scale;
             const y = (e.clientY - rect.top - offset.y) / scale;
 
+            // 그룹 텍스트 클릭 확인
+            const clickedGroupText = groupsRef.current.find(group => {
+                const textX = group.centerX;
+                const textY = group.centerY - group.radius - 20;
+                const textWidth = ctx.measureText(group.name).width / scale;
+                const textHeight = 14; // 폰트 크기
+
+                return (
+                    x >= textX - textWidth / 2 &&
+                    x <= textX + textWidth / 2 &&
+                    y >= textY - textHeight / 2 &&
+                    y <= textY + textHeight / 2
+                );
+            });
+
+            // 편집 중인 그룹이 있고, 클릭한 위치가 그룹 이름이 아닌 경우 편집 모드 종료
+            const editingGroup = groupsRef.current.find(group => group.isEditing);
+            if (editingGroup && !clickedGroupText) {
+                editingGroup.isEditing = false;
+            }
+
             // 먼저 노드 선택 확인
             const clickedNode = nodes.find(node => {
                 if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
@@ -330,7 +351,7 @@ export const useCanvas = ({
                 const y = (e.clientY - rect.top - offset.y) / scale;
 
                 // 그룹 텍스트 더블클릭 확인
-                const clickedGroup = groupsRef.current.find(group => {
+                const clickedGroupText = groupsRef.current.find(group => {
                     const textX = group.centerX;
                     const textY = group.centerY - group.radius - 20;
                     const textWidth = ctx.measureText(group.name).width / scale;
@@ -344,8 +365,13 @@ export const useCanvas = ({
                     );
                 });
 
-                if (clickedGroup) {
-                    clickedGroup.isEditing = true;
+                if (clickedGroupText) {
+                    // 다른 그룹이 편집 중이면 편집 모드 종료
+                    const editingGroup = groupsRef.current.find(group => group.isEditing);
+                    if (editingGroup && editingGroup.id !== clickedGroupText.id) {
+                        editingGroup.isEditing = false;
+                    }
+                    clickedGroupText.isEditing = true;
                     return;
                 }
 
