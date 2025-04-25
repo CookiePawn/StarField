@@ -108,8 +108,15 @@ export const useCanvas = ({
             // 컨트롤+G로 그룹 생성
             if (e.ctrlKey && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
                 e.preventDefault(); // 기본 동작 방지
-                const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
-                if (selectedNodes.length > 0) {
+                
+                // 이미 그룹에 속한 노드들을 제외한 노드들만 선택
+                const ungroupedNodes = selectedNodesRef.current.filter(nodeId => 
+                    !groupsRef.current.some(group => group.nodeIds.includes(nodeId))
+                );
+
+                if (ungroupedNodes.length > 0) {
+                    const selectedNodes = nodes.filter(node => ungroupedNodes.includes(node.id));
+                    
                     // 그룹의 중심점 계산
                     const centerX = selectedNodes.reduce((sum, node) => sum + node.x, 0) / selectedNodes.length;
                     const centerY = selectedNodes.reduce((sum, node) => sum + node.y, 0) / selectedNodes.length;
@@ -122,7 +129,7 @@ export const useCanvas = ({
                     // 새 그룹 생성
                     const newGroup: Group = {
                         id: Date.now(),
-                        nodeIds: selectedNodesRef.current,
+                        nodeIds: ungroupedNodes,
                         centerX,
                         centerY,
                         radius,
