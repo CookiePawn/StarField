@@ -289,7 +289,7 @@ export const useCanvas = ({
             setMousePosition({ x: e.clientX, y: e.clientY });
         };
 
-        const handleMouseUp = (e: MouseEvent) => {
+        const handleMouseUp = () => {
             if (dragBoxRef.current) {
                 // 드래그 박스 안의 노드 선택
                 const rect = canvas.getBoundingClientRect();
@@ -705,7 +705,34 @@ export const useCanvas = ({
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [isMounted, isGrabbing, isDragging, offset, scale, nodes, links, selectedNode, draggingNode, isConnecting, connectingFrom, mousePosition]);
+    }, [
+        isMounted,
+        isGrabbing,
+        isDragging,
+        offset,
+        scale,
+        nodes,
+        links,
+        selectedNode,
+        draggingNode,
+        isConnecting,
+        connectingFrom,
+        mousePosition,
+        dragStart,
+        setCanvasContextMenu,
+        setConnectingFrom,
+        setContextMenu,
+        setDraggingNode,
+        setIsConnecting,
+        setIsDragging,
+        setIsGrabbing,
+        setLinks,
+        setMousePosition,
+        setNodes,
+        setOffset,
+        setScale,
+        setSelectedNode
+    ]);
 
     return canvasRef;
 }; 
