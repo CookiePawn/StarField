@@ -881,6 +881,13 @@ export const useCanvas = ({
                 ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
                 ctx.fill();
 
+                // 중앙 흰색 원 추가
+                const centerColor = isHovered ? 200 : 255; // 호버 시 200, 기본 255
+                ctx.fillStyle = `rgba(${centerColor}, ${centerColor}, ${centerColor}, ${opacity})`;
+                ctx.beginPath();
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 39 * scale, 0, Math.PI * 2);
+                ctx.fill();
+
                 // 선택된 노드의 레이더 애니메이션
                 if (selectedNode === node.id || selectedNodesRef.current.includes(node.id)) {
                     const time = Date.now() / 1000;
@@ -906,7 +913,7 @@ export const useCanvas = ({
                 }
 
                 // 노드 텍스트
-                const textColor = isHovered ? 200 : 255; // 호버 시 200, 기본 255
+                const textColor = isHovered ? 100 : 0; // 호버 시 200, 기본 255
                 ctx.fillStyle = `rgba(${textColor}, ${textColor}, ${textColor}, ${opacity})`;
                 ctx.font = `${12 * scale}px Arial`;
                 ctx.textAlign = 'center';
