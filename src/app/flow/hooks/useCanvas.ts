@@ -653,6 +653,14 @@ export const useCanvas = ({
         // 노드 그리기 수정
         const drawNodes = () => {
             nodes.forEach(node => {
+                // 마우스 호버 상태 확인
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
+                const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
+                const isHovered = Math.sqrt(
+                    Math.pow(node.x - mouseX, 2) + Math.pow(node.y - mouseY, 2)
+                ) <= 50;
+
                 // 검은색 배경
                 ctx.fillStyle = 'black';
                 ctx.beginPath();
@@ -668,8 +676,11 @@ export const useCanvas = ({
                     node.y * scale + offset.y,
                     50 * scale
                 );
+                
+                // 호버 상태에 따른 그라데이션 색상 조절
+                const whiteColor = isHovered ? 100 : 255; // 호버 시 200, 기본 255
                 gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
-                gradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(1, `rgba(${whiteColor}, ${whiteColor}, ${whiteColor}, 0.8)`);
 
                 // 그라데이션 적용
                 ctx.fillStyle = gradient;
@@ -691,7 +702,7 @@ export const useCanvas = ({
                     const currentRadius = minRadius + (maxRadius - minRadius) * pulseProgress;
                     
                     // 투명도 계산 (펄스 진행도에 따라 0.4에서 0.6 사이로 변화)
-                    const opacity = 0.3 + (0.2 * pulseProgress);
+                    const opacity = 0.4 + (0.2 * pulseProgress);
                     
                     // 레이더 원 그리기
                     ctx.beginPath();
@@ -702,7 +713,8 @@ export const useCanvas = ({
                 }
 
                 // 노드 텍스트
-                ctx.fillStyle = 'white';
+                const textColor = isHovered ? 200 : 255; // 호버 시 200, 기본 255
+                ctx.fillStyle = `rgba(${textColor}, ${textColor}, ${textColor}, 1)`;
                 ctx.font = `${12 * scale}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
