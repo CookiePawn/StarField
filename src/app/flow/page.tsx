@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { EditorSidebar, ZoomSidebar, Header, ContextMenu_Node, ContextMenu_Canvas, NodeInfo } from './components';
+import { EditorSidebar, ZoomSidebar, Header, ContextMenu_Node, ContextMenu_Canvas } from './components';
 import { Node, NodeContextMenu, Link, CanvasContextMenu } from './type'
 import { useCanvas } from './hooks';
 import styles from './styles/flow.module.css';
