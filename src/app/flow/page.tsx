@@ -100,14 +100,6 @@ const FlowPage = () => {
           scale={scale}
           offset={offset}
         />
-      )}  
-      {selectedNode && (
-        <NodeInfo 
-          selectedNode={selectedNode ? nodes.find(node => node.id === selectedNode) || null : null}
-          nodes={nodes}
-          links={links}
-          setSelectedNode={setSelectedNode}
-        />
       )}
     </div>
   );
