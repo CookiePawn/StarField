@@ -175,10 +175,11 @@ export const useCanvas = ({
 
                 if (clickedNode) {
                     if (e.ctrlKey || e.metaKey) {
-                        // Command+클릭: 노드 연결 시작
+                        // Command/Control+드래그: 노드 연결 시작
                         setIsConnecting(true);
                         setConnectingFrom(clickedNode.id);
                         setSelectedNode(clickedNode.id);
+                        setIsDragging(true);
                     } else if (isConnecting) {
                         // 연결 모드에서 노드 클릭: 연결 완료
                         if (clickedNode.id !== connectingFrom && connectingFrom !== null) {
@@ -195,6 +196,7 @@ export const useCanvas = ({
                         setIsConnecting(false);
                         setConnectingFrom(null);
                         setSelectedNode(null);
+                        setIsDragging(false);
                     } else {
                         // 일반 클릭: 노드 드래그 시작
                         setIsDragging(true);
@@ -227,6 +229,7 @@ export const useCanvas = ({
                     setIsConnecting(false);
                     setConnectingFrom(null);
                     setSelectedNode(null);
+                    setIsDragging(false);
                 } else {
                     setSelectedNode(null);
                 }
@@ -280,6 +283,9 @@ export const useCanvas = ({
                     x: e.clientX - dragStart.current.x,
                     y: e.clientY - dragStart.current.y
                 });
+            } else if (isDragging && isConnecting) {
+                // 연결 모드에서 드래그 중 - 마우스 위치만 업데이트
+                setMousePosition({ x: e.clientX, y: e.clientY });
             } else if (dragBoxRef.current) {
                 // 드래그 박스 업데이트
                 dragBoxRef.current.endX = e.clientX;
@@ -322,8 +328,39 @@ export const useCanvas = ({
                 dragBoxRef.current = null;
             }
 
+            if (isDragging && isConnecting && connectingFrom !== null) {
+                // 연결 모드에서 마우스를 놓을 때
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
+                const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
+
+                // 마우스가 노드 위에 있는지 확인
+                const hoveredNode = nodes.find(node => {
+                    const dx = node.x - mouseX;
+                    const dy = node.y - mouseY;
+                    return Math.sqrt(dx * dx + dy * dy) <= 50;
+                });
+
+                if (hoveredNode && hoveredNode.id !== connectingFrom) {
+                    // 노드 위에 있을 때 연결 완료
+                    const linkExists = links.some(link =>
+                        (link.from === connectingFrom && link.to === hoveredNode.id) ||
+                        (link.from === hoveredNode.id && link.to === connectingFrom)
+                    );
+
+                    if (!linkExists) {
+                        setLinks([...links, { from: connectingFrom, to: hoveredNode.id }]);
+                    }
+                }
+            }
+
             setIsDragging(false);
             setDraggingNode(null);
+            if (isConnecting) {
+                setIsConnecting(false);
+                setConnectingFrom(null);
+                setSelectedNode(null);
+            }
             canvas.style.cursor = isGrabbing ? 'grab' : 'default';
         };
 
