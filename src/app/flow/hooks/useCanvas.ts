@@ -188,15 +188,28 @@ export const useCanvas = ({
                     };
                     setNodes([...nodes, newNode]);
 
-                    // 노드가 속한 그룹 찾기
-                    const nodeGroup = groupsRef.current.find(group => 
-                        group.nodeIds.includes(clickedNode.id)
-                    );
+                    // 노드가 속한 모든 그룹 찾기 (중첩된 그룹 포함)
+                    const findParentGroups = (nodeId: number, groups: Group[]): Group[] => {
+                        const parentGroups: Group[] = [];
+                        const findGroups = (id: number) => {
+                            groups.forEach(group => {
+                                if (group.nodeIds.includes(id)) {
+                                    parentGroups.push(group);
+                                    // 그룹이 다른 그룹에 속해있는지 확인
+                                    findGroups(group.id);
+                                }
+                            });
+                        };
+                        findGroups(nodeId);
+                        return parentGroups;
+                    };
+
+                    const parentGroups = findParentGroups(clickedNode.id, groupsRef.current);
                     
-                    // 노드가 그룹에 속해있다면 복제된 노드도 같은 그룹에 추가
-                    if (nodeGroup) {
-                        nodeGroup.nodeIds.push(newNode.id);
-                    }
+                    // 모든 상위 그룹에 복제된 노드 추가
+                    parentGroups.forEach(group => {
+                        group.nodeIds.push(newNode.id);
+                    });
 
                     setDraggingNode(newNode.id);
                     setIsDragging(true);
