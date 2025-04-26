@@ -78,6 +78,7 @@ export const useCanvas = ({
     const groupsRef = useRef<Group[]>([]);
     const selectedGroupRef = useRef<Group | null>(null);
     const dragOffset = useRef<{ x: number; y: number } | null>(null);
+    const isComposing = useRef<boolean>(false);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -115,6 +116,11 @@ export const useCanvas = ({
                 // 그룹 이름 편집 완료
                 const editingGroup = groupsRef.current.find(group => group.isEditing);
                 if (editingGroup) {
+                    // 이름이 비어있으면 기본값 설정
+                    if (editingGroup.name.trim() === '') {
+                        editingGroup.name = 'Group';
+                    }
+                    // 편집 완료
                     editingGroup.isEditing = false;
                 }
             } else if (e.key === 'Escape') {
@@ -127,10 +133,22 @@ export const useCanvas = ({
                 // 그룹 이름 편집 중 텍스트 입력
                 const editingGroup = groupsRef.current.find(group => group.isEditing);
                 if (editingGroup) {
-                    if (e.key.length === 1 && editingGroup.name.length < 30) {
-                        editingGroup.name += e.key;
+                    if (e.key === 'Enter') {
+                        // 이름이 비어있으면 기본값 설정
+                        if (editingGroup.name.trim() === '') {
+                            editingGroup.name = 'Group';
+                        }
+                        // 편집 완료
+                        editingGroup.isEditing = false;
+                    } else if (e.key === 'Escape') {
+                        // 편집 취소
+                        editingGroup.isEditing = false;
                     } else if (e.key === 'Backspace') {
+                        // 백스페이스
                         editingGroup.name = editingGroup.name.slice(0, -1);
+                    } else if (!isComposing.current && e.key.length === 1 && editingGroup.name.length < 30) {
+                        // 일반 문자 입력 (한글 제외)
+                        editingGroup.name += e.key;
                     }
                 }
             }
@@ -165,6 +183,19 @@ export const useCanvas = ({
 
         const handleKeyUp = () => {
             // 키보드 이벤트 처리 제거
+        };
+
+        // composition 이벤트 처리 추가
+        const handleCompositionStart = () => {
+            isComposing.current = true;
+        };
+
+        const handleCompositionEnd = (e: CompositionEvent) => {
+            isComposing.current = false;
+            const editingGroup = groupsRef.current.find(group => group.isEditing);
+            if (editingGroup && editingGroup.name.length < 30) {
+                editingGroup.name += e.data;
+            }
         };
 
         // 그룹 선택 함수
@@ -350,13 +381,33 @@ export const useCanvas = ({
             }
         };
 
-        // 더블클릭 이벤트 추가
+        // 더블클릭 이벤트 처리 수정
         const handleDoubleClick = (e: MouseEvent) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left - offset.x) / scale;
             const y = (e.clientY - rect.top - offset.y) / scale;
 
-            // 클릭한 위치에 노드가 있는지 확인
+            // 먼저 그룹 이름 클릭 확인
+            const clickedGroupName = groupsRef.current.find(group => {
+                const textX = group.centerX;
+                const textY = group.centerY - group.radius - 20;
+                const textWidth = ctx.measureText(group.name).width / scale;
+                const textHeight = 14; // 폰트 크기
+
+                return (
+                    x >= textX - textWidth / 2 &&
+                    x <= textX + textWidth / 2 &&
+                    y >= textY - textHeight / 2 &&
+                    y <= textY + textHeight / 2
+                );
+            });
+
+            if (clickedGroupName) {
+                clickedGroupName.isEditing = true;
+                return;
+            }
+
+            // 그룹 이름이 클릭되지 않았다면 노드 클릭 확인
             const clickedNode = nodes.find(node => {
                 const dx = node.x - x;
                 const dy = node.y - y;
@@ -563,10 +614,40 @@ export const useCanvas = ({
             setOffset({ x: newOffsetX, y: newOffsetY });
         };
 
+        // 그룹 이름 더블클릭 이벤트 처리
+        const handleGroupDoubleClick = (e: MouseEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left - offset.x) / scale;
+            const y = (e.clientY - rect.top - offset.y) / scale;
+
+            // 그룹 이름 클릭 확인
+            const clickedGroup = groupsRef.current.find(group => {
+                const textX = group.centerX;
+                const textY = group.centerY - group.radius - 20;
+                const textWidth = ctx.measureText(group.name).width / scale;
+                const textHeight = 14; // 폰트 크기
+
+                return (
+                    x >= textX - textWidth / 2 &&
+                    x <= textX + textWidth / 2 &&
+                    y >= textY - textHeight / 2 &&
+                    y <= textY + textHeight / 2
+                );
+            });
+
+            if (clickedGroup) {
+                clickedGroup.isEditing = true;
+            }
+        };
+
+        // 이벤트 리스너 등록
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('compositionstart', handleCompositionStart);
+        window.addEventListener('compositionend', handleCompositionEnd);
         canvas.addEventListener('mousedown', handleMouseDown);
         canvas.addEventListener('dblclick', handleDoubleClick);
+        canvas.addEventListener('dblclick', handleGroupDoubleClick);
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
         canvas.addEventListener('wheel', handleWheel, { passive: false });
@@ -656,7 +737,7 @@ export const useCanvas = ({
             }
         };
 
-        // 그룹 그리기 함수
+        // 그룹 그리기 함수 수정
         const drawGroups = () => {
             groupsRef.current.forEach(group => {
                 // 그룹에 속한 노드들 찾기
@@ -744,18 +825,31 @@ export const useCanvas = ({
                     const maxWidth = 300 * scale; // 최대 너비
                     const inputWidth = Math.min(Math.max(textWidth + padding, minWidth), maxWidth);
 
+                    // 텍스트 입력 필드 배경
                     ctx.fillStyle = '#222222';
                     ctx.fillRect(
-                        (group.centerX - inputWidth / 2) + offset.x,
+                        group.centerX * scale + offset.x - inputWidth / 2,
                         (group.centerY - group.radius - 30) * scale + offset.y,
                         inputWidth,
                         30 * scale
                     );
+
+                    // 텍스트 입력 필드 테두리
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(
+                        group.centerX * scale + offset.x - inputWidth / 2,
+                        (group.centerY - group.radius - 30) * scale + offset.y,
+                        inputWidth,
+                        30 * scale
+                    );
+
+                    // 텍스트 표시
                     ctx.fillStyle = 'white';
                     ctx.fillText(
                         group.name,
                         group.centerX * scale + offset.x,
-                        (group.centerY - group.radius) * scale + offset.y - 20 * scale
+                        (group.centerY - group.radius - 20) * scale + offset.y
                     );
                 } else {
                     // 일반 텍스트 표시
@@ -763,7 +857,7 @@ export const useCanvas = ({
                     ctx.fillText(
                         group.name,
                         group.centerX * scale + offset.x,
-                        (group.centerY - group.radius) * scale + offset.y - 20 * scale
+                        (group.centerY - group.radius - 20) * scale + offset.y
                     );
                 }
             });
@@ -1013,8 +1107,11 @@ export const useCanvas = ({
             window.removeEventListener('resize', resizeCanvas);
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('compositionstart', handleCompositionStart);
+            window.removeEventListener('compositionend', handleCompositionEnd);
             canvas.removeEventListener('mousedown', handleMouseDown);
             canvas.removeEventListener('dblclick', handleDoubleClick);
+            canvas.removeEventListener('dblclick', handleGroupDoubleClick);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
             canvas.removeEventListener('wheel', handleWheel);
