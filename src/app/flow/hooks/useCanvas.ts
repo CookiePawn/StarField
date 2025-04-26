@@ -291,30 +291,6 @@ export const useCanvas = ({
                 return Math.sqrt(dx * dx + dy * dy) <= 50;
             });
 
-            // 팝업이 열려있는 노드 주변 영역 클릭 확인
-            const nodeWithPopup = nodes.find(node => node.popup);
-            if (nodeWithPopup) {
-                // 팝업 영역을 월드 좌표계로 계산 (팝업이 그려지는 위치와 동일하게)
-                const popupX = nodeWithPopup.x - 200; // 팝업이 그려지는 위치와 동일하게 조정
-                const popupY = nodeWithPopup.y + 60;
-                const popupWidth = 400;
-                const popupHeight = 700;
-
-                // 월드 좌표계에서 화면 좌표계로 변환
-                const screenX = (popupX * scale) + offset.x + rect.left;
-                const screenY = (popupY * scale) + offset.y + rect.top;
-                const screenWidth = popupWidth * scale;
-                const screenHeight = popupHeight * scale;
-
-                // 마우스 좌표가 팝업 영역 내에 있는지 확인
-                if (e.clientX >= screenX && e.clientX <= screenX + screenWidth &&
-                    e.clientY >= screenY && e.clientY <= screenY + screenHeight) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                }
-            }
-
             if (clickedNode) {
                 if (e.ctrlKey || e.metaKey) {
                     // Command/Control+클릭: 노드 선택 추가/제거
@@ -413,13 +389,9 @@ export const useCanvas = ({
                 }
 
                 // 슬라이더 클릭 처리
-                if (clickedNode && clickedNode.popup) {
-                    const rect = canvas.getBoundingClientRect();
-                    const x = (e.clientX - rect.left - offset.x) / scale;
-                    const y = (e.clientY - rect.top - offset.y) / scale;
-
+                if (clickedNode.popup) {
                     // maxToken 슬라이더 영역
-                    const maxTokenSliderX = clickedNode.x - 150;
+                    const maxTokenSliderX = clickedNode.x - 200;
                     const maxTokenSliderY = clickedNode.y + 620;
                     const maxTokenSliderWidth = 300;
                     const maxTokenSliderHeight = 10;
@@ -441,7 +413,7 @@ export const useCanvas = ({
                     }
 
                     // creativity 슬라이더 영역
-                    const creativitySliderX = clickedNode.x - 150;
+                    const creativitySliderX = clickedNode.x - 200;
                     const creativitySliderY = clickedNode.y + 670;
                     const creativitySliderWidth = 300;
                     const creativitySliderHeight = 10;
@@ -462,7 +434,30 @@ export const useCanvas = ({
                         return;
                     }
                 }
-                return; // 노드가 클릭되었으면 그룹 선택 로직을 건너뜁니다
+                return;
+            }
+
+            // 팝업이 열려있는 노드 주변 영역 클릭 확인
+            const nodeWithPopup = nodes.find(node => node.popup);
+            if (nodeWithPopup) {
+                const popupX = nodeWithPopup.x - 200;
+                const popupY = nodeWithPopup.y + 60;
+                const popupWidth = 400;
+                const popupHeight = 700;
+
+                // 월드 좌표계에서 화면 좌표계로 변환
+                const screenX = (popupX * scale) + offset.x + rect.left;
+                const screenY = (popupY * scale) + offset.y + rect.top;
+                const screenWidth = popupWidth * scale;
+                const screenHeight = popupHeight * scale;
+
+                // 마우스 좌표가 팝업 영역 내에 있는지 확인
+                if (e.clientX >= screenX && e.clientX <= screenX + screenWidth &&
+                    e.clientY >= screenY && e.clientY <= screenY + screenHeight) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
             }
 
             // 노드가 선택되지 않았을 때만 그룹 선택 확인
@@ -523,6 +518,29 @@ export const useCanvas = ({
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left - offset.x) / scale;
             const y = (e.clientY - rect.top - offset.y) / scale;
+
+            // 팝업이 열려있는 노드 주변 영역 클릭 확인
+            const nodeWithPopup = nodes.find(node => node.popup);
+            if (nodeWithPopup) {
+                const popupX = nodeWithPopup.x - 200;
+                const popupY = nodeWithPopup.y + 60;
+                const popupWidth = 400;
+                const popupHeight = 700;
+
+                // 월드 좌표계에서 화면 좌표계로 변환
+                const screenX = (popupX * scale) + offset.x + rect.left;
+                const screenY = (popupY * scale) + offset.y + rect.top;
+                const screenWidth = popupWidth * scale;
+                const screenHeight = popupHeight * scale;
+
+                // 마우스 좌표가 팝업 영역 내에 있는지 확인
+                if (e.clientX >= screenX && e.clientX <= screenX + screenWidth &&
+                    e.clientY >= screenY && e.clientY <= screenY + screenHeight) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+            }
 
             // 먼저 그룹 이름 클릭 확인
             const clickedGroupName = groupsRef.current.find(group => {
