@@ -303,15 +303,12 @@ export const useCanvas = ({
                     // Command/Control+클릭: 노드 선택 추가/제거
                     const index = selectedNodesRef.current.indexOf(clickedNode.id);
                     if (index === -1) {
-                        // 노드가 선택되지 않은 경우 추가
                         selectedNodesRef.current.push(clickedNode.id);
                     } else {
-                        // 노드가 이미 선택된 경우 제거
                         selectedNodesRef.current.splice(index, 1);
                     }
                     setSelectedNode(selectedNodesRef.current.length === 1 ? selectedNodesRef.current[0] : null);
                     
-                    // 연결 모드로 전환
                     setIsConnecting(true);
                     setConnectingFrom(clickedNode.id);
                 } else if (e.altKey) {
@@ -348,7 +345,6 @@ export const useCanvas = ({
                         group.nodeIds.push(newNode.id);
                     });
 
-                    // 클릭한 위치와 노드 중심점의 차이를 저장
                     dragOffset.current = {
                         x: x - clickedNode.x,
                         y: y - clickedNode.y
@@ -365,7 +361,6 @@ export const useCanvas = ({
                 setIsDragging(true);
                 setDraggingNode(clickedNode.id);
 
-                // 클릭한 위치와 노드 중심점의 차이를 저장
                 dragOffset.current = {
                     x: x - clickedNode.x,
                     y: y - clickedNode.y
@@ -507,6 +502,33 @@ export const useCanvas = ({
                 const rect = canvas.getBoundingClientRect();
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
+                
+                // Shift+드래그 중에 노드가 그룹 안에 들어가는지 확인
+                if (e.shiftKey) {
+                    const targetGroup = groupsRef.current.find(group => {
+                        const distance = Math.sqrt(
+                            Math.pow(newX - group.centerX, 2) + Math.pow(newY - group.centerY, 2)
+                        );
+                        return distance <= group.radius;
+                    });
+
+                    if (targetGroup && !targetGroup.nodeIds.includes(draggingNode)) {
+                        targetGroup.nodeIds.push(draggingNode);
+                        // 그룹의 중심점과 반경 재계산
+                        const groupNodes = nodes.filter(node => targetGroup.nodeIds.includes(node.id));
+                        if (groupNodes.length > 0) {
+                            const centerX = groupNodes.reduce((sum, node) => sum + node.x, 0) / groupNodes.length;
+                            const centerY = groupNodes.reduce((sum, node) => sum + node.y, 0) / groupNodes.length;
+                            const radius = Math.max(...groupNodes.map(node => 
+                                Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
+                            )) + 50;
+
+                            targetGroup.centerX = centerX;
+                            targetGroup.centerY = centerY;
+                            targetGroup.radius = radius;
+                        }
+                    }
+                }
                 
                 // Control/Command 키를 누른 상태에서 노드 드래그 시 링크 연결 모드 시작
                 if (e.ctrlKey || e.metaKey) {
@@ -882,8 +904,8 @@ export const useCanvas = ({
             // 캔버스 초기화
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 검은색 배경
-            ctx.fillStyle = '#000000';
+            // 배경색 설정
+            ctx.fillStyle = '#131313';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // 흰색 점 그리기
