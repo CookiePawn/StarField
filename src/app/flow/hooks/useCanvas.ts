@@ -138,6 +138,20 @@ export const useCanvas = ({
                     !selectedNodesRef.current.includes(link.from) && 
                     !selectedNodesRef.current.includes(link.to)
                 ));
+
+                // 그룹에서 삭제된 노드 제거
+                groupsRef.current = groupsRef.current.map(group => ({
+                    ...group,
+                    nodeIds: group.nodeIds.filter(id => !selectedNodesRef.current.includes(id))
+                }));
+
+                // 노드가 1개 이하인 그룹 제거
+                groupsRef.current = groupsRef.current.filter(group => {
+                    // 그룹에 속한 실제 노드 수 계산 (그룹 ID 제외)
+                    const nodeCount = group.nodeIds.filter(id => !id.startsWith('group-')).length;
+                    return nodeCount > 1;
+                });
+
                 // 선택 초기화
                 selectedNodesRef.current = [];
                 setSelectedNode(null);
@@ -218,7 +232,17 @@ export const useCanvas = ({
                         }
                     });
 
+                    // 새 그룹을 groups 배열에 추가
                     groupsRef.current = [...groupsRef.current, newGroup];
+
+                    // 모든 그룹을 검사하여 노드가 1개만 있는 그룹 제거
+                    groupsRef.current = groupsRef.current.filter(group => {
+                        // 그룹에 속한 실제 노드 수 계산 (그룹 ID 제외)
+                        const nodeCount = group.nodeIds.filter(id => !id.startsWith('group-')).length;
+                        
+                        // 노드가 1개 이하인 그룹 제거
+                        return nodeCount > 1;
+                    });
                 }
             }
         };
