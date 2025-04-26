@@ -365,12 +365,14 @@ export const useCanvas = ({
             }
 
             // 노드가 선택되지 않았을 때만 그룹 선택 확인
-            const clickedGroup = groupsRef.current.find(group => {
-                const distance = Math.sqrt(
-                    Math.pow(x - group.centerX, 2) + Math.pow(y - group.centerY, 2)
-                );
-                return distance <= group.radius;
-            });
+            const clickedGroup = groupsRef.current
+                .filter(group => {
+                    const distance = Math.sqrt(
+                        Math.pow(x - group.centerX, 2) + Math.pow(y - group.centerY, 2)
+                    );
+                    return distance <= group.radius;
+                })
+                .sort((a, b) => a.radius - b.radius)[0]; // 가장 작은 반경을 가진 그룹 선택
 
             if (clickedGroup) {
                 selectedGroupRef.current = clickedGroup;
