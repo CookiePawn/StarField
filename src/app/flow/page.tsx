@@ -33,6 +33,9 @@ const FlowPage = () => {
   const dragStart = useRef({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
 
+  const NODE_RADIUS = 30;
+  const NODE_SPACING = NODE_RADIUS * 3;
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -66,6 +69,64 @@ const FlowPage = () => {
     setCanvasContextMenu
   });
 
+  const getViewportCenter = () => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 화면 중앙의 캔버스 좌표 계산
+    const centerX = (viewportWidth / 2 - offset.x) / scale;
+    const centerY = (viewportHeight / 2 - offset.y) / scale;
+    
+    return { x: centerX, y: centerY };
+  };
+
+  const isPositionValid = (x: number, y: number, existingNodes: Node[]) => {
+    return !existingNodes.some(node => {
+      const dx = node.x - x;
+      const dy = node.y - y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < NODE_SPACING;
+    });
+  };
+
+  const findEmptyPosition = (existingNodes: Node[]) => {
+    const center = getViewportCenter();
+    let radius = 0;
+    let angle = 0;
+    const angleStep = Math.PI / 8; // 22.5도씩 회전
+
+    // 나선형으로 검색하여 빈 공간 찾기
+    while (radius < Math.min(window.innerWidth, window.innerHeight) / scale) {
+      const x = center.x + radius * Math.cos(angle);
+      const y = center.y + radius * Math.sin(angle);
+
+      if (isPositionValid(x, y, existingNodes)) {
+        return { x, y };
+      }
+
+      angle += angleStep;
+      if (angle >= Math.PI * 2) {
+        angle = 0;
+        radius += NODE_SPACING;
+      }
+    }
+
+    // 적절한 위치를 못찾으면 중앙에 생성
+    return center;
+  };
+
+  const handleAddNode = () => {
+    const { x, y } = findEmptyPosition(nodes);
+
+    const newNode: Node = {
+      id: nodeIdRef.current++,
+      x,
+      y,
+      label: 'New Node'
+    };
+    setNodes([...nodes, newNode]);
+  };
+
   if (!isMounted) {
     return null;
   }
@@ -73,7 +134,7 @@ const FlowPage = () => {
   return (
     <div className={styles.container}>
       <Header />
-      <EditorSidebar />
+      <EditorSidebar onAddNode={handleAddNode} />
       <ZoomSidebar scale={scale} setScale={setScale} />
       <canvas
         ref={canvasRef}

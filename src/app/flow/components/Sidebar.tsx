@@ -1,10 +1,21 @@
 import React from 'react';
 import styles from '../styles/sidebar.module.css';
 
-export const EditorSidebar: React.FC = () => {
+interface EditorSidebarProps {
+    onAddNode: () => void;
+}
+
+export const EditorSidebar: React.FC<EditorSidebarProps> = ({ onAddNode }) => {
     return (
         <div className={styles.editorSidebar}>
-            {Array.from({ length: 10 }).map((_, index) => (
+            <div 
+                key={"textinput"} 
+                className={styles.editorSidebarButton}
+                onClick={onAddNode}
+            >
+                <p>T</p>
+            </div>
+            {Array.from({ length: 5 }).map((_, index) => (
                 <div key={index} className={styles.editorSidebarButton}>
                     <p>+</p>
                 </div>
