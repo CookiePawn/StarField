@@ -302,27 +302,6 @@ export const useCanvas = ({
             const x = (e.clientX - rect.left - offset.x) / scale;
             const y = (e.clientY - rect.top - offset.y) / scale;
 
-            // 그룹 텍스트 클릭 확인
-            const clickedGroupText = groupsRef.current.find(group => {
-                const textX = group.centerX;
-                const textY = group.centerY - group.radius - 20;
-                const textWidth = ctx.measureText(group.name).width / scale;
-                const textHeight = 14; // 폰트 크기
-
-                return (
-                    x >= textX - textWidth / 2 &&
-                    x <= textX + textWidth / 2 &&
-                    y >= textY - textHeight / 2 &&
-                    y <= textY + textHeight / 2
-                );
-            });
-
-            // 편집 중인 그룹이 있고, 클릭한 위치가 그룹 이름이 아닌 경우 편집 모드 종료
-            const editingGroup = groupsRef.current.find(group => group.isEditing);
-            if (editingGroup && !clickedGroupText) {
-                editingGroup.isEditing = false;
-            }
-
             // 먼저 노드 선택 확인
             const clickedNode = nodes.find(node => {
                 if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
@@ -398,7 +377,36 @@ export const useCanvas = ({
                     x: x - clickedNode.x,
                     y: y - clickedNode.y
                 };
-                return;
+
+                // 입력 필드 클릭 처리
+                if (clickedNode && clickedNode.popup) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left - offset.x) / scale;
+                    const y = (e.clientY - rect.top - offset.y) / scale;
+
+                    const popupX = clickedNode.x - 150;
+                    const popupY = clickedNode.y + 30;
+                    const inputX = popupX + 10;
+                    const inputY = popupY + 25;
+                    const inputWidth = 200;
+                    const inputHeight = 15;
+
+                    if (x >= inputX && x <= inputX + inputWidth &&
+                        y >= inputY && y <= inputY + inputHeight) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // 노드 라벨 수정
+                        const newLabel = prompt('Enter new label:', clickedNode.label);
+                        if (newLabel && newLabel.trim()) {
+                            setNodes(nodes.map(n => 
+                                n.id === clickedNode.id ? { ...n, label: newLabel.trim() } : n
+                            ));
+                        }
+                        return;
+                    }
+                }
+                return; // 노드가 클릭되었으면 그룹 선택 로직을 건너뜁니다
             }
 
             // 노드가 선택되지 않았을 때만 그룹 선택 확인
@@ -1177,10 +1185,10 @@ export const useCanvas = ({
 
                 // 팝업 그리기
                 if (node.popup) {
-                    const popupWidth = 300 * scale;
-                    const popupHeight = 150 * scale;
+                    const popupWidth = 400 * scale;
+                    const popupHeight = 700 * scale;  // 높이를 400에서 700로 증가
                     const popupX = node.x * scale + offset.x - popupWidth / 2;
-                    const popupY = node.y * scale + offset.y + 60 * scale; // 노드 아래에 위치
+                    const popupY = node.y * scale + offset.y + 60 * scale;
 
                     // 팝업 배경
                     ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
@@ -1195,30 +1203,185 @@ export const useCanvas = ({
                     ctx.roundRect(popupX, popupY, popupWidth, popupHeight, 10 * scale);
                     ctx.stroke();
 
-                    // 팝업 내용
-                    ctx.fillStyle = 'white';
-                    ctx.font = `${14 * scale}px Arial`;
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'top';
-                    
-                    // 제목 (노드 라벨)
-                    ctx.font = `bold ${16 * scale}px Arial`;
-                    ctx.fillText(node.label, popupX + 20 * scale, popupY + 20 * scale);
-                    
+                    // 섹션 구분선
+                    const drawSectionDivider = (y: number) => {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                        ctx.beginPath();
+                        ctx.moveTo(popupX + 20 * scale, y);
+                        ctx.lineTo(popupX + popupWidth - 20 * scale, y);
+                        ctx.stroke();
+                    };
+
+                    // 섹션 제목
+                    const drawSectionTitle = (title: string, y: number) => {
+                        ctx.font = `bold ${14 * scale}px Arial`;
+                        ctx.fillStyle = 'white';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(title, popupX + 20 * scale, y);
+                    };
+
+                    // 입력 필드 배경
+                    const drawInputField = (x: number, y: number, width: number, height: number, label: string) => {
+                        // 배경
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, width, height, 5 * scale);
+                        ctx.fill();
+
+                        // 테두리
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, width, height, 5 * scale);
+                        ctx.stroke();
+
+                        // 라벨
+                        ctx.font = `${12 * scale}px Arial`;
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(label, x + 10 * scale, y - 20 * scale);
+                    };
+
+                    // 슬라이더
+                    const drawSlider = (x: number, y: number, width: number, height: number, label: string, value: number) => {
+                        // 배경
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, width, height, height / 2);
+                        ctx.fill();
+
+                        // 채워진 부분
+                        const filledWidth = width * value;
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, filledWidth, height, height / 2);
+                        ctx.fill();
+
+                        // 테두리
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, width, height, height / 2);
+                        ctx.stroke();
+
+                        // 라벨
+                        ctx.font = `${12 * scale}px Arial`;
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(label, x + 10 * scale, y - 20 * scale);
+
+                        // 값
+                        ctx.fillText(`${Math.round(value * 100)}%`, x + width + 10 * scale, y + height / 2);
+                    };
+
+                    // 토글 버튼
+                    const drawToggle = (x: number, y: number, width: number, height: number, label: string, isOn: boolean) => {
+                        // 배경
+                        ctx.fillStyle = isOn ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, width, height, height / 2);
+                        ctx.fill();
+
+                        // 토글 버튼
+                        const buttonSize = height - 4 * scale;
+                        const buttonX = isOn ? x + width - buttonSize - 2 * scale : x + 2 * scale;
+                        ctx.fillStyle = 'white';
+                        ctx.beginPath();
+                        ctx.arc(buttonX + buttonSize / 2, y + height / 2, buttonSize / 2, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // 라벨
+                        ctx.font = `${12 * scale}px Arial`;
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(label, x + 10 * scale, y - 20 * scale);
+                    };
+
+                    // 1. 노드 이름 수정
+                    drawSectionTitle('1. 노드 이름 수정', popupY + 20 * scale);
+                    drawInputField(
+                        popupX + 20 * scale,
+                        popupY + 50 * scale,
+                        360 * scale,
+                        30 * scale,
+                        '노드 이름'
+                    );
+
                     // 구분선
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    drawSectionDivider(popupY + 100 * scale);
+
+                    // 2. 입력 텍스트 지침
+                    drawSectionTitle('2. 입력 텍스트 지침', popupY + 120 * scale);
+                    drawInputField(
+                        popupX + 20 * scale,
+                        popupY + 150 * scale,
+                        360 * scale,
+                        60 * scale,
+                        '지침 입력'
+                    );
+
+                    // 구분선
+                    drawSectionDivider(popupY + 230 * scale);
+
+                    // 3. 입력 텍스트
+                    drawSectionTitle('3. 입력 텍스트', popupY + 250 * scale);
+                    drawInputField(
+                        popupX + 20 * scale,
+                        popupY + 280 * scale,
+                        360 * scale,
+                        60 * scale,
+                        '텍스트 입력'
+                    );
+
+                    // 구분선
+                    drawSectionDivider(popupY + 360 * scale);
+
+                    // 4. AI 응답
+                    drawSectionTitle('4. AI 응답', popupY + 380 * scale);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
                     ctx.beginPath();
-                    ctx.moveTo(popupX + 20 * scale, popupY + 50 * scale);
-                    ctx.lineTo(popupX + popupWidth - 20 * scale, popupY + 50 * scale);
-                    ctx.stroke();
+                    ctx.roundRect(popupX + 20 * scale, popupY + 410 * scale, 360 * scale, 60 * scale, 5 * scale);
+                    ctx.fill();
 
-                    // 노드 ID
-                    ctx.font = `${12 * scale}px Arial`;
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                    ctx.fillText(`ID: ${node.id}`, popupX + 20 * scale, popupY + 70 * scale);
+                    // 구분선
+                    drawSectionDivider(popupY + 490 * scale);
 
-                    // 위치 정보
-                    ctx.fillText(`Position: (${Math.round(node.x)}, ${Math.round(node.y)})`, popupX + 20 * scale, popupY + 90 * scale);
+                    // 5. 고급 옵션
+                    drawSectionTitle('5. 고급 옵션', popupY + 510 * scale);
+
+                    // 5-1. AI 모델 선택
+                    drawToggle(
+                        popupX + 20 * scale,
+                        popupY + 540 * scale,
+                        100 * scale,
+                        20 * scale,
+                        'GPT-4',
+                        true
+                    );
+
+                    // 5-2. max token 설정
+                    drawSlider(
+                        popupX + 20 * scale,
+                        popupY + 580 * scale,
+                        360 * scale,
+                        10 * scale,
+                        'Max Token',
+                        0.5
+                    );
+
+                    // 5-3. 창의력/연관도 설정
+                    drawSlider(
+                        popupX + 20 * scale,
+                        popupY + 620 * scale,
+                        360 * scale,
+                        10 * scale,
+                        '창의력',
+                        0.7
+                    );
                 }
 
                 // 선택된 노드의 레이더 애니메이션
