@@ -24,7 +24,7 @@ export const GroupNameInput = ({ group, scale, offset, onUpdate, onFinish }: Gro
                 inputRef.current.value.length
             );
         }
-    }, [group.id]);
+    }, [group.name]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {

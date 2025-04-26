@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { Node, Link, NodeContextMenu, CanvasContextMenu } from '../type';
-import { GroupNameInput } from '../components/GroupNameInput';
 
 interface UseCanvasProps {
     isMounted: boolean;
@@ -84,13 +83,9 @@ export const useCanvas = ({
     const isComposing = useRef<boolean>(false);
     const editingGroupRef = useRef<Group | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const inputPositionRef = useRef<{ x: number; y: number } | null>(null);
     const isDraggingGroupRef = useRef<boolean>(false);
     const editingGroupIdRef = useRef<string | null>(null);
-    const isInputActiveRef = useRef<boolean>(false);
-    const lastEditingGroupRef = useRef<Group | null>(null);
     const inputUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const isShiftKeyPressed = useRef<boolean>(false);
 
     const handleGroupNameUpdate = (name: string) => {
         if (editingGroupRef.current) {
@@ -240,6 +235,25 @@ export const useCanvas = ({
                 editingGroup.name += inputEvent.data;
             }
         };
+
+        // 그룹 선택 함수
+        // const selectGroup = (x: number, y: number) => {
+        //     const rect = canvas.getBoundingClientRect();
+        //     const mouseX = (x - rect.left - offset.x) / scale;
+        //     const mouseY = (y - rect.top - offset.y) / scale;
+
+        //     for (const group of groupsRef.current) {
+        //         const distance = Math.sqrt(
+        //             Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
+        //         );
+        //         // 그룹 원의 두께를 고려하여 선택 영역 설정
+        //         if (Math.abs(distance - group.radius) <= 2.5) {
+        //             selectedGroupRef.current = group;
+        //             return;
+        //         }
+        //     }
+        //     selectedGroupRef.current = null;
+        // };
 
         // 마우스 이벤트 처리
         const handleMouseDown = (e: MouseEvent) => {
@@ -455,7 +469,6 @@ export const useCanvas = ({
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            isShiftKeyPressed.current = e.shiftKey;
             if (isDragging && selectedGroupRef.current) {
                 // 그룹 드래그
                 const dx = (e.clientX - dragStart.current.x - offset.x) / scale;
@@ -485,6 +498,33 @@ export const useCanvas = ({
                 const rect = canvas.getBoundingClientRect();
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
+                
+                // Shift+드래그 중에 노드가 그룹 안에 들어가는지 확인
+                if (e.shiftKey) {
+                    const targetGroup = groupsRef.current.find(group => {
+                        const distance = Math.sqrt(
+                            Math.pow(newX - group.centerX, 2) + Math.pow(newY - group.centerY, 2)
+                        );
+                        return distance <= group.radius;
+                    });
+
+                    if (targetGroup && !targetGroup.nodeIds.includes(draggingNode)) {
+                        targetGroup.nodeIds.push(draggingNode);
+                        // 그룹의 중심점과 반경 재계산
+                        const groupNodes = nodes.filter(node => targetGroup.nodeIds.includes(node.id));
+                        if (groupNodes.length > 0) {
+                            const centerX = groupNodes.reduce((sum, node) => sum + node.x, 0) / groupNodes.length;
+                            const centerY = groupNodes.reduce((sum, node) => sum + node.y, 0) / groupNodes.length;
+                            const radius = Math.max(...groupNodes.map(node => 
+                                Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
+                            )) + 50;
+
+                            targetGroup.centerX = centerX;
+                            targetGroup.centerY = centerY;
+                            targetGroup.radius = radius;
+                        }
+                    }
+                }
                 
                 // Control/Command 키를 누른 상태에서 노드 드래그 시 링크 연결 모드 시작
                 if (e.ctrlKey || e.metaKey) {
@@ -576,48 +616,6 @@ export const useCanvas = ({
                         setLinks([...links, { from: connectingFrom, to: hoveredNode.id }]);
                     }
                 }
-            }
-
-            // Shift+드래그 후 마우스 업 이벤트 처리
-            if (isDragging && draggingNode !== null) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
-                const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
-
-                // 현재 노드가 속한 그룹 찾기
-                const sourceGroup = groupsRef.current.find(group => 
-                    group.nodeIds.includes(draggingNode)
-                );
-
-                // 마우스가 그룹 안에 있는지 확인 (원래 그룹 제외)
-                const targetGroup = groupsRef.current.find(group => {
-                    if (group === sourceGroup) return false;
-                    const distance = Math.sqrt(
-                        Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
-                    );
-                    return distance <= group.radius;
-                });
-
-                if (targetGroup && !targetGroup.nodeIds.includes(draggingNode) && isShiftKeyPressed.current) {
-                    // Shift 키를 누른 상태에서만 노드를 새 그룹에 추가
-                    targetGroup.nodeIds.push(draggingNode);
-                }
-
-                // 모든 그룹의 중심점과 반경 재계산
-                groupsRef.current.forEach(group => {
-                    const groupNodes = nodes.filter(node => group.nodeIds.includes(node.id));
-                    if (groupNodes.length > 0) {
-                        const centerX = groupNodes.reduce((sum, node) => sum + node.x, 0) / groupNodes.length;
-                        const centerY = groupNodes.reduce((sum, node) => sum + node.y, 0) / groupNodes.length;
-                        const radius = Math.max(...groupNodes.map(node => 
-                            Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
-                        )) + 50;
-
-                        group.centerX = centerX;
-                        group.centerY = centerY;
-                        group.radius = radius;
-                    }
-                });
             }
 
             setIsDragging(false);
@@ -902,8 +900,8 @@ export const useCanvas = ({
             // 캔버스 초기화
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 배경색 설정
-            ctx.fillStyle = '#131313';
+            // 검은색 배경
+            ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // 흰색 점 그리기
@@ -1161,6 +1159,7 @@ export const useCanvas = ({
                 }
             } catch (e) {
                 // 무시
+                console.error(e);
             }
             inputRef.current = null;
             if (inputUpdateTimeoutRef.current) {

@@ -17,7 +17,7 @@ export const ContextMenu_Node: React.FC<{
     links,
     setLinks,
 }) => {
-        const handleRenameNode = (nodeId: number) => {
+        const handleRenameNode = (nodeId: string) => {
             const newLabel = prompt('새로운 노드 이름을 입력하세요:');
             if (newLabel) {
                 setNodes(nodes.map(node =>
@@ -27,7 +27,7 @@ export const ContextMenu_Node: React.FC<{
             setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
         };
 
-        const handleDeleteNode = (nodeId: number) => {
+        const handleDeleteNode = (nodeId: string) => {
             // 노드와 관련된 모든 링크 삭제
             setLinks(links.filter(link => link.from !== nodeId && link.to !== nodeId));
             // 노드 삭제
@@ -68,7 +68,7 @@ interface ContextMenu_CanvasProps {
     setContextMenu: (menu: CanvasContextMenu) => void;
     nodes: Node[];
     setNodes: (nodes: Node[]) => void;
-    nodeIdRef: React.RefObject<number>;
+    nodeIdRef: React.RefObject<string>;
     scale: number;
     offset: { x: number; y: number };
 }
@@ -97,11 +97,13 @@ export const ContextMenu_Canvas: React.FC<ContextMenu_CanvasProps> = ({
             id: nodeIdRef.current,
             label: `Node ${nodeIdRef.current}`,
             x: x,
-            y: y
+            y: y,
+            shape: 'circle',
+            popup: false
         };
 
         setNodes([...nodes, newNode]);
-        nodeIdRef.current += 1;
+        nodeIdRef.current = String(Number(nodeIdRef.current) + 1);
         setContextMenu({ visible: false, x: 0, y: 0 });
     };
 

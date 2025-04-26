@@ -30,7 +30,7 @@ const FlowPage = () => {
     x: 0,
     y: 0
   });
-  const nodeIdRef = useRef(1);
+  const nodeIdRef = useRef('1');
   const dragStart = useRef({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
   const [dotColor, setDotColor] = useState('#777777');
