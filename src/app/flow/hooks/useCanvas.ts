@@ -273,25 +273,6 @@ export const useCanvas = ({
             }
         };
 
-        // 그룹 선택 함수
-        // const selectGroup = (x: number, y: number) => {
-        //     const rect = canvas.getBoundingClientRect();
-        //     const mouseX = (x - rect.left - offset.x) / scale;
-        //     const mouseY = (y - rect.top - offset.y) / scale;
-
-        //     for (const group of groupsRef.current) {
-        //         const distance = Math.sqrt(
-        //             Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
-        //         );
-        //         // 그룹 원의 두께를 고려하여 선택 영역 설정
-        //         if (Math.abs(distance - group.radius) <= 2.5) {
-        //             selectedGroupRef.current = group;
-        //             return;
-        //         }
-        //     }
-        //     selectedGroupRef.current = null;
-        // };
-
         // 마우스 이벤트 처리
         const handleMouseDown = (e: MouseEvent) => {
             // 우클릭 메뉴 닫기
@@ -309,6 +290,30 @@ export const useCanvas = ({
                 const dy = node.y - y;
                 return Math.sqrt(dx * dx + dy * dy) <= 50;
             });
+
+            // 팝업이 열려있는 노드 주변 영역 클릭 확인
+            const nodeWithPopup = nodes.find(node => node.popup);
+            if (nodeWithPopup) {
+                // 팝업 영역을 월드 좌표계로 계산 (팝업이 그려지는 위치와 동일하게)
+                const popupX = nodeWithPopup.x - 200; // 팝업이 그려지는 위치와 동일하게 조정
+                const popupY = nodeWithPopup.y + 60;
+                const popupWidth = 400;
+                const popupHeight = 700;
+
+                // 월드 좌표계에서 화면 좌표계로 변환
+                const screenX = (popupX * scale) + offset.x + rect.left;
+                const screenY = (popupY * scale) + offset.y + rect.top;
+                const screenWidth = popupWidth * scale;
+                const screenHeight = popupHeight * scale;
+
+                // 마우스 좌표가 팝업 영역 내에 있는지 확인
+                if (e.clientX >= screenX && e.clientX <= screenX + screenWidth &&
+                    e.clientY >= screenY && e.clientY <= screenY + screenHeight) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+            }
 
             if (clickedNode) {
                 if (e.ctrlKey || e.metaKey) {
@@ -403,6 +408,57 @@ export const useCanvas = ({
                                 n.id === clickedNode.id ? { ...n, label: newLabel.trim() } : n
                             ));
                         }
+                        return;
+                    }
+                }
+
+                // 슬라이더 클릭 처리
+                if (clickedNode && clickedNode.popup) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left - offset.x) / scale;
+                    const y = (e.clientY - rect.top - offset.y) / scale;
+
+                    // maxToken 슬라이더 영역
+                    const maxTokenSliderX = clickedNode.x - 150;
+                    const maxTokenSliderY = clickedNode.y + 620;
+                    const maxTokenSliderWidth = 300;
+                    const maxTokenSliderHeight = 10;
+
+                    if (x >= maxTokenSliderX && x <= maxTokenSliderX + maxTokenSliderWidth &&
+                        y >= maxTokenSliderY && y <= maxTokenSliderY + maxTokenSliderHeight) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // 슬라이더 값 계산
+                        const sliderValue = (x - maxTokenSliderX) / maxTokenSliderWidth;
+                        const maxToken = Math.round(sliderValue * 100);
+                        
+                        // 노드 업데이트
+                        setNodes(nodes.map(n => 
+                            n.id === clickedNode.id ? { ...n, maxToken } : n
+                        ));
+                        return;
+                    }
+
+                    // creativity 슬라이더 영역
+                    const creativitySliderX = clickedNode.x - 150;
+                    const creativitySliderY = clickedNode.y + 670;
+                    const creativitySliderWidth = 300;
+                    const creativitySliderHeight = 10;
+
+                    if (x >= creativitySliderX && x <= creativitySliderX + creativitySliderWidth &&
+                        y >= creativitySliderY && y <= creativitySliderY + creativitySliderHeight) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // 슬라이더 값 계산
+                        const sliderValue = (x - creativitySliderX) / creativitySliderWidth;
+                        const creativity = Math.round(sliderValue * 100) / 100;
+                        
+                        // 노드 업데이트
+                        setNodes(nodes.map(n => 
+                            n.id === clickedNode.id ? { ...n, creativity } : n
+                        ));
                         return;
                     }
                 }
@@ -1367,7 +1423,7 @@ export const useCanvas = ({
                         300 * scale,
                         10 * scale,
                         'Max Token',
-                        0.5
+                        (node.maxToken || 50) / 100
                     );
 
                     // 5-3. 창의력/연관도 설정
@@ -1377,7 +1433,7 @@ export const useCanvas = ({
                         300 * scale,
                         10 * scale,
                         '창의력',
-                        0.7
+                        node.creativity || 0.7
                     );
                 }
 

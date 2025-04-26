@@ -3,8 +3,10 @@ export interface Node {
     x: number;
     y: number;
     label: string;
-    shape: 'circle' | 'square';
+    shape: 'circle' | 'square' | 'diamond';
     popup: boolean;
+    maxToken?: number;
+    creativity?: number;
 }
 
 export interface Link {
