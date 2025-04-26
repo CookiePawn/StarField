@@ -28,6 +28,7 @@ interface UseCanvasProps {
     dragStart: React.RefObject<{ x: number; y: number }>;
     setContextMenu: (menu: NodeContextMenu) => void;
     setCanvasContextMenu: (menu: CanvasContextMenu) => void;
+    dotColor: string;
 }
 
 interface Group {
@@ -66,7 +67,8 @@ export const useCanvas = ({
     setConnectingFrom,
     dragStart,
     setContextMenu,
-    setCanvasContextMenu
+    setCanvasContextMenu,
+    dotColor
 }: UseCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number | undefined>(undefined);
@@ -793,7 +795,7 @@ export const useCanvas = ({
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // 흰색 점 그리기
-            ctx.fillStyle = '#777777'; // 더 밝은 회색으로 변경
+            ctx.fillStyle = dotColor;
             const dotSize = 1;
             const spacing = 50;
 
@@ -1040,7 +1042,8 @@ export const useCanvas = ({
         setNodes,
         setOffset,
         setScale,
-        setSelectedNode
+        setSelectedNode,
+        dotColor
     ]);
 
     return canvasRef;

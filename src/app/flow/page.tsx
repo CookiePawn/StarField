@@ -32,6 +32,7 @@ const FlowPage = () => {
   const nodeIdRef = useRef(1);
   const dragStart = useRef({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
+  const [dotColor, setDotColor] = useState('#777777');
 
   const NODE_RADIUS = 30;
   const NODE_SPACING = NODE_RADIUS * 3;
@@ -66,7 +67,8 @@ const FlowPage = () => {
     setConnectingFrom,
     dragStart,
     setContextMenu,
-    setCanvasContextMenu
+    setCanvasContextMenu,
+    dotColor
   });
 
   const getViewportCenter = () => {
@@ -135,7 +137,12 @@ const FlowPage = () => {
     <div className={styles.container}>
       <Header />
       <EditorSidebar onAddNode={handleAddNode} />
-      <ZoomSidebar scale={scale} setScale={setScale} />
+      <ZoomSidebar 
+        scale={scale} 
+        setScale={setScale} 
+        dotColor={dotColor}
+        setDotColor={setDotColor}
+      />
       <canvas
         ref={canvasRef}
         className={styles.canvas}

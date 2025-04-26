@@ -29,7 +29,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({ onAddNode }) => {
 };
 
 
-export const ZoomSidebar: React.FC<{ scale: number, setScale: (scale: number) => void }> = ({ scale, setScale }) => {
+export const ZoomSidebar: React.FC<{ 
+    scale: number, 
+    setScale: (scale: number) => void,
+    dotColor: string,
+    setDotColor: (color: string) => void 
+}> = ({ scale, setScale, dotColor, setDotColor }) => {
     return (
         <div className={styles.zoomSidebar}>
             <div
@@ -46,7 +51,7 @@ export const ZoomSidebar: React.FC<{ scale: number, setScale: (scale: number) =>
             </div>
             <div
                 className={styles.zoomSidebarButton}
-                onClick={() => setScale(1)}
+                onClick={() => setDotColor(dotColor === '#777777' ? '#000000' : '#777777')}
             >
                 <Image src={Dot} alt="dot" width={14} height={14} />
             </div>
