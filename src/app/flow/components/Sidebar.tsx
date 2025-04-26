@@ -35,26 +35,49 @@ export const ZoomSidebar: React.FC<{
     dotColor: string,
     setDotColor: (color: string) => void 
 }> = ({ scale, setScale, dotColor, setDotColor }) => {
+    const MIN_SCALE = 0.5;
+    const MAX_SCALE = 2.0;
+
+    const handleZoomIn = () => {
+        if (scale < MAX_SCALE) {
+            setScale(Math.min(scale + 0.1, MAX_SCALE));
+        }
+    };
+
+    const handleZoomOut = () => {
+        if (scale > MIN_SCALE) {
+            setScale(Math.max(scale - 0.1, MIN_SCALE));
+        }
+    };
+
     return (
-        <div className={styles.zoomSidebar}>
-            <div
-                className={styles.zoomSidebarButton}
-                onClick={() => setScale(scale + 0.1)}
-            >
-                <Image src={Plus} alt="plus" width={14} height={14} />
+        <>
+            <div className={styles.zoomSidebar}>
+                <div
+                    className={styles.zoomSidebarButton}
+                    onClick={handleZoomIn}
+                    style={{ opacity: scale >= MAX_SCALE ? 0.5 : 1 }}
+                >
+                    <Image src={Plus} alt="plus" width={14} height={14} />
+                </div>
+                <div
+                    className={styles.zoomSidebarButton}
+                    onClick={handleZoomOut}
+                    style={{ opacity: scale <= MIN_SCALE ? 0.5 : 1 }}
+                >
+                    <Image src={Minus} alt="minus" width={14} height={14} />
+                </div>
+                <div className={styles.divider} />
+                <div
+                    className={styles.zoomSidebarButton}
+                    onClick={() => setDotColor(dotColor === '#777777' ? '#000000' : '#777777')}
+                >
+                    <Image src={Dot} alt="dot" width={14} height={14} />
+                </div>
             </div>
-            <div
-                className={styles.zoomSidebarButton}
-                onClick={() => setScale(scale - 0.1)}
-            >
-                <Image src={Minus} alt="minus" width={14} height={14} />
+            <div className={styles.zoomScale}>
+                {Math.round(scale * 100)}%
             </div>
-            <div
-                className={styles.zoomSidebarButton}
-                onClick={() => setDotColor(dotColor === '#777777' ? '#000000' : '#777777')}
-            >
-                <Image src={Dot} alt="dot" width={14} height={14} />
-            </div>
-        </div>
+        </>
     );
 };
