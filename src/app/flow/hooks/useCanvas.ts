@@ -206,6 +206,18 @@ export const useCanvas = ({
                         isEditing: false
                     };
 
+                    // 새 그룹을 포함하는 상위 그룹 찾기
+                    const parentGroups = groupsRef.current.filter(group => 
+                        selectedNodesRef.current.some(nodeId => group.nodeIds.includes(nodeId))
+                    );
+
+                    // 상위 그룹들의 nodeIds에 새 그룹의 ID 추가
+                    parentGroups.forEach(parentGroup => {
+                        if (!parentGroup.nodeIds.includes(newGroup.id)) {
+                            parentGroup.nodeIds.push(newGroup.id);
+                        }
+                    });
+
                     groupsRef.current = [...groupsRef.current, newGroup];
                 }
             }
@@ -502,19 +514,40 @@ export const useCanvas = ({
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
                 
-                // Shift+드래그 중에 노드가 그룹 안에 들어가는지 확인
+                // Shift+드래그 중에 가장 가까운 그룹 찾기
                 if (e.shiftKey) {
-                    const targetGroup = groupsRef.current.find(group => {
+                    let nearestGroup: Group | null = null;
+                    let minDistance = Infinity;
+
+                    // 모든 그룹에 대해 거리 계산 (계층 구조 고려)
+                    for (const group of groupsRef.current) {
+                        // 그룹의 중심점과 마우스 위치 사이의 거리 계산
                         const distance = Math.sqrt(
                             Math.pow(newX - group.centerX, 2) + Math.pow(newY - group.centerY, 2)
                         );
-                        return distance <= group.radius;
-                    });
+                        
+                        // 그룹의 반경 내에 있고, 가장 가까운 그룹인 경우
+                        if (distance <= group.radius && distance < minDistance) {
+                            minDistance = distance;
+                            nearestGroup = group;
+                        }
+                    }
 
-                    if (targetGroup && !targetGroup.nodeIds.includes(draggingNode)) {
-                        targetGroup.nodeIds.push(draggingNode);
+                    // 가장 가까운 그룹이 있고, 아직 그룹에 속하지 않은 경우
+                    if (nearestGroup && !nearestGroup.nodeIds.includes(draggingNode)) {
+                        // 기존 그룹에서 노드 제거 (다른 그룹에 속해있다면)
+                        for (const group of groupsRef.current) {
+                            const index = group.nodeIds.indexOf(draggingNode);
+                            if (index !== -1) {
+                                group.nodeIds.splice(index, 1);
+                            }
+                        }
+
+                        // 새로운 그룹에 노드 추가
+                        nearestGroup.nodeIds.push(draggingNode);
+                        
                         // 그룹의 중심점과 반경 재계산
-                        const groupNodes = nodes.filter(node => targetGroup.nodeIds.includes(node.id));
+                        const groupNodes = nodes.filter(node => nearestGroup?.nodeIds.includes(node.id));
                         if (groupNodes.length > 0) {
                             const centerX = groupNodes.reduce((sum, node) => sum + node.x, 0) / groupNodes.length;
                             const centerY = groupNodes.reduce((sum, node) => sum + node.y, 0) / groupNodes.length;
@@ -522,9 +555,51 @@ export const useCanvas = ({
                                 Math.sqrt(Math.pow(node.x - centerX, 2) + Math.pow(node.y - centerY, 2))
                             )) + 50;
 
-                            targetGroup.centerX = centerX;
-                            targetGroup.centerY = centerY;
-                            targetGroup.radius = radius;
+                            nearestGroup.centerX = centerX;
+                            nearestGroup.centerY = centerY;
+                            nearestGroup.radius = radius;
+
+                            // 모든 상위 그룹 찾기
+                            const findParentGroups = (group: Group): Group[] => {
+                                const parentGroups: Group[] = [];
+                                const findGroups = (id: string) => {
+                                    groupsRef.current.forEach(g => {
+                                        if (g.nodeIds.includes(id)) {
+                                            parentGroups.push(g);
+                                            findGroups(g.id);
+                                        }
+                                    });
+                                };
+                                findGroups(group.id);
+                                return parentGroups;
+                            };
+
+                            // 현재 그룹의 모든 상위 그룹 찾기
+                            const parentGroups = findParentGroups(nearestGroup);
+                            
+                            // 모든 상위 그룹에 노드 추가 및 업데이트
+                            parentGroups.forEach(parentGroup => {
+                                if (!parentGroup.nodeIds.includes(draggingNode)) {
+                                    parentGroup.nodeIds.push(draggingNode);
+                                }
+                                
+                                // 상위 그룹의 중심점과 반경 재계산
+                                const parentGroupNodes = nodes.filter(node => 
+                                    parentGroup.nodeIds.includes(node.id)
+                                );
+                                
+                                if (parentGroupNodes.length > 0) {
+                                    const parentCenterX = parentGroupNodes.reduce((sum, node) => sum + node.x, 0) / parentGroupNodes.length;
+                                    const parentCenterY = parentGroupNodes.reduce((sum, node) => sum + node.y, 0) / parentGroupNodes.length;
+                                    const parentRadius = Math.max(...parentGroupNodes.map(node => 
+                                        Math.sqrt(Math.pow(node.x - parentCenterX, 2) + Math.pow(node.y - parentCenterY, 2))
+                                    )) + 50;
+
+                                    parentGroup.centerX = parentCenterX;
+                                    parentGroup.centerY = parentCenterY;
+                                    parentGroup.radius = parentRadius;
+                                }
+                            });
                         }
                     }
                 }
