@@ -81,6 +81,7 @@ export const useCanvas = ({
     const selectedGroupRef = useRef<Group | null>(null);
     const dragOffset = useRef<{ x: number; y: number } | null>(null);
     const isComposing = useRef<boolean>(false);
+    const composingValue = useRef<string>('');
     const editingGroupRef = useRef<Group | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const editingNodeRef = useRef<Node | null>(null);
@@ -278,25 +279,33 @@ export const useCanvas = ({
             // 키보드 이벤트 처리 제거
         };
 
-        // composition 이벤트 처리 추가
+        // composition 이벤트 처리
         const handleCompositionStart = () => {
             isComposing.current = true;
         };
 
         const handleCompositionEnd = (e: CompositionEvent) => {
             isComposing.current = false;
-            const editingGroup = groupsRef.current.find(group => group.isEditing);
-            if (editingGroup && editingGroup.name.length < 30) {
-                editingGroup.name += e.data;
+            const target = e.target as HTMLInputElement;
+            if (editingNodeRef.current) {
+                handleNodeNameUpdate(target.value);
+            } else if (editingGroupRef.current) {
+                handleGroupNameUpdate(target.value);
             }
         };
 
         // input 이벤트 처리 추가
         const handleInput = (e: Event) => {
-            const inputEvent = e as InputEvent;
-            const editingGroup = groupsRef.current.find(group => group.isEditing);
-            if (editingGroup && editingGroup.name.length < 30 && inputEvent.data) {
-                editingGroup.name += inputEvent.data;
+            // 한글 입력 중에는 input 이벤트를 무시
+            if (isComposing.current) {
+                return;
+            }
+            
+            const target = e.target as HTMLInputElement;
+            if (editingNodeRef.current) {
+                handleNodeNameUpdate(target.value);
+            } else if (editingGroupRef.current) {
+                handleGroupNameUpdate(target.value);
             }
         };
 
@@ -1016,6 +1025,7 @@ export const useCanvas = ({
 
         // 그룹 그리기 함수 수정
         const drawGroups = () => {
+            const rect = canvas.getBoundingClientRect();
             groupsRef.current.forEach(group => {
                 // 그룹에 속한 노드들 찾기
                 const groupNodes = nodes.filter(node => group.nodeIds.includes(node.id));
@@ -1102,6 +1112,49 @@ export const useCanvas = ({
                         group.centerX * scale + offset.x,
                         (group.centerY - group.radius - 20) * scale + offset.y
                     );
+                } else {
+                    // 입력 필드 생성 또는 업데이트
+                    if (!inputRef.current || editingGroupRef.current?.id !== group.id) {
+                        if (inputRef.current) {
+                            inputRef.current.remove();
+                        }
+
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = group.name;
+                        input.style.position = 'absolute';
+                        input.style.left = `${(group.centerX - ctx.measureText(group.name).width / 2) * scale + offset.x + rect.left}px`;
+                        input.style.top = `${(group.centerY - group.radius - 20 - 7) * scale + offset.y + rect.top}px`;
+                        input.style.width = `${ctx.measureText(group.name).width * scale}px`;
+                        input.style.height = `${14 * scale}px`;
+                        input.style.backgroundColor = 'transparent';
+                        input.style.border = 'none';
+                        input.style.color = strokeStyle;
+                        input.style.fontSize = `${14 * scale}px`;
+                        input.style.fontFamily = 'Arial';
+                        input.style.textAlign = 'center';
+                        input.style.outline = 'none';
+
+                        // 이벤트 리스너 추가
+                        input.addEventListener('input', handleInput);
+                        input.addEventListener('compositionstart', handleCompositionStart);
+                        input.addEventListener('compositionend', handleCompositionEnd);
+
+                        input.addEventListener('blur', () => {
+                            handleGroupNameFinish();
+                        });
+
+                        input.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                handleGroupNameFinish();
+                            }
+                        });
+
+                        document.body.appendChild(input);
+                        inputRef.current = input;
+                        editingGroupRef.current = group;
+                        input.focus();
+                    }
                 }
             });
         };
@@ -1444,10 +1497,10 @@ export const useCanvas = ({
                         input.style.fontFamily = 'Arial';
                         input.style.outline = 'none';
 
-                        input.addEventListener('input', (e) => {
-                            const target = e.target as HTMLInputElement;
-                            handleNodeNameUpdate(target.value);
-                        });
+                        // 이벤트 리스너 추가
+                        input.addEventListener('input', handleInput);
+                        input.addEventListener('compositionstart', handleCompositionStart);
+                        input.addEventListener('compositionend', handleCompositionEnd);
 
                         input.addEventListener('blur', () => {
                             handleNodeNameFinish();
