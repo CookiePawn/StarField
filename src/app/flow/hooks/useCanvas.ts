@@ -83,9 +83,10 @@ export const useCanvas = ({
     const isComposing = useRef<boolean>(false);
     const editingGroupRef = useRef<Group | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const editingNodeRef = useRef<Node | null>(null);
+    const inputUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isDraggingGroupRef = useRef<boolean>(false);
     const editingGroupIdRef = useRef<string | null>(null);
-    const inputUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleGroupNameUpdate = (name: string) => {
         if (editingGroupRef.current) {
@@ -109,6 +110,27 @@ export const useCanvas = ({
         }
     };
 
+    const handleNodeNameUpdate = (name: string) => {
+        if (editingNodeRef.current) {
+            setNodes(nodes.map(n => 
+                n.id === editingNodeRef.current?.id ? { ...n, label: name } : n
+            ));
+        }
+    };
+
+    const handleNodeNameFinish = () => {
+        if (editingNodeRef.current) {
+            editingNodeRef.current = null;
+            if (inputRef.current) {
+                const input = inputRef.current;
+                inputRef.current = null; // 먼저 ref를 null로 설정
+                if (document.body.contains(input)) {
+                    input.remove();
+                }
+            }
+        }
+    };
+
     useEffect(() => {
         if (!isMounted) return;
 
@@ -120,6 +142,11 @@ export const useCanvas = ({
 
         // 스페이스바 이벤트 처리
         const handleKeyDown = (e: KeyboardEvent) => {
+            // input이 활성화되어 있을 때는 노드 삭제 방지
+            if (inputRef.current) {
+                return;
+            }
+
             if (e.key === 'Backspace' && selectedLinkRef.current) {
                 setLinks(links.filter(link => 
                     !(link.from === selectedLinkRef.current?.from && link.to === selectedLinkRef.current?.to)
@@ -1260,7 +1287,7 @@ export const useCanvas = ({
                 // 팝업 그리기
                 if (node.popup) {
                     const popupWidth = 400 * scale;
-                    const popupHeight = 700 * scale;  // 높이를 400에서 700로 증가
+                    const popupHeight = 700 * scale;
                     const popupX = node.x * scale + offset.x - popupWidth / 2;
                     const popupY = node.y * scale + offset.y + 60 * scale;
 
@@ -1374,13 +1401,69 @@ export const useCanvas = ({
 
                     // 1. 노드 이름 수정
                     drawSectionTitle('1. 노드 이름', popupY + 20 * scale);
-                    drawInputField(
-                        popupX + 20 * scale,
-                        popupY + 50 * scale,
-                        360 * scale,
-                        30 * scale,
-                        ''
-                    );
+                    
+                    // 입력 필드 배경
+                    const inputX = popupX + 20 * scale;
+                    const inputY = popupY + 50 * scale;
+                    const inputWidth = 360 * scale;
+                    const inputHeight = 30 * scale;
+
+                    // 입력 필드 배경 그리기
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.beginPath();
+                    ctx.roundRect(inputX, inputY, inputWidth, inputHeight, 5 * scale);
+                    ctx.fill();
+
+                    // 입력 필드 테두리
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.roundRect(inputX, inputY, inputWidth, inputHeight, 5 * scale);
+                    ctx.stroke();
+
+                    // 입력 필드 생성 또는 업데이트
+                    if (!inputRef.current || editingNodeRef.current?.id !== node.id) {
+                        if (inputRef.current) {
+                            inputRef.current.remove();
+                        }
+
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = node.label;
+                        input.style.position = 'absolute';
+                        input.style.left = `${inputX + rect.left}px`;
+                        input.style.top = `${inputY + rect.top}px`;
+                        input.style.width = `${inputWidth}px`;
+                        input.style.height = `${inputHeight}px`;
+                        input.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                        input.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+                        input.style.borderRadius = '5px';
+                        input.style.padding = '5px';
+                        input.style.color = 'white';
+                        input.style.fontSize = `${12 * scale}px`;
+                        input.style.fontFamily = 'Arial';
+                        input.style.outline = 'none';
+
+                        input.addEventListener('input', (e) => {
+                            const target = e.target as HTMLInputElement;
+                            handleNodeNameUpdate(target.value);
+                        });
+
+                        input.addEventListener('blur', () => {
+                            handleNodeNameFinish();
+                        });
+
+                        input.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                handleNodeNameFinish();
+                            }
+                        });
+
+                        document.body.appendChild(input);
+                        inputRef.current = input;
+                        editingNodeRef.current = node;
+                        input.focus();
+                    }
 
                     // 구분선
                     drawSectionDivider(popupY + 100 * scale);
@@ -1512,14 +1595,17 @@ export const useCanvas = ({
                 cancelAnimationFrame(animationFrameRef.current);
             }
             try {
-                if (inputRef.current && document.body.contains(inputRef.current)) {
-                    inputRef.current.remove();
+                if (inputRef.current) {
+                    const input = inputRef.current;
+                    inputRef.current = null; // 먼저 ref를 null로 설정
+                    if (document.body.contains(input)) {
+                        input.remove();
+                    }
                 }
             } catch (e) {
                 // 무시
                 console.error(e);
             }
-            inputRef.current = null;
             if (inputUpdateTimeoutRef.current) {
                 clearTimeout(inputUpdateTimeoutRef.current);
                 inputUpdateTimeoutRef.current = null;
