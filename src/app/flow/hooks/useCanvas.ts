@@ -135,9 +135,9 @@ export const useCanvas = ({
                 }
             }
             // Command+G로 그룹 생성
-            if ((e.ctrlKey || e.metaKey) && e.key === 'g' && selectedNodesRef.current.length > 0) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'g' && selectedNodesRef.current.length > 1) {
                 const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
-                if (selectedNodes.length > 0) {
+                if (selectedNodes.length > 1) {
                     // 그룹의 중심점 계산
                     const centerX = selectedNodes.reduce((sum, node) => sum + node.x, 0) / selectedNodes.length;
                     const centerY = selectedNodes.reduce((sum, node) => sum + node.y, 0) / selectedNodes.length;
@@ -237,6 +237,10 @@ export const useCanvas = ({
                         selectedNodesRef.current.splice(index, 1);
                     }
                     setSelectedNode(selectedNodesRef.current.length === 1 ? selectedNodesRef.current[0] : null);
+                    
+                    // 연결 모드로 전환
+                    setIsConnecting(true);
+                    setConnectingFrom(clickedNode.id);
                 } else if (e.altKey) {
                     // Option/Alt+클릭: 노드 복사
                     const newNode: Node = {
@@ -475,7 +479,6 @@ export const useCanvas = ({
             }
 
             if (isDragging && isConnecting && connectingFrom !== null) {
-                // 연결 모드에서 마우스를 놓을 때
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
                 const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
