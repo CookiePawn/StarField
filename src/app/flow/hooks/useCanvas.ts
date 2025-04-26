@@ -1177,26 +1177,48 @@ export const useCanvas = ({
 
                 // 팝업 그리기
                 if (node.popup) {
-                    const popupWidth = 200 * scale;
-                    const popupHeight = 100 * scale;
+                    const popupWidth = 300 * scale;
+                    const popupHeight = 150 * scale;
                     const popupX = node.x * scale + offset.x - popupWidth / 2;
                     const popupY = node.y * scale + offset.y + 60 * scale; // 노드 아래에 위치
 
                     // 팝업 배경
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(popupX, popupY, popupWidth, popupHeight);
+                    ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
+                    ctx.beginPath();
+                    ctx.roundRect(popupX, popupY, popupWidth, popupHeight, 10 * scale);
+                    ctx.fill();
 
                     // 팝업 테두리
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(popupX, popupY, popupWidth, popupHeight);
+                    ctx.beginPath();
+                    ctx.roundRect(popupX, popupY, popupWidth, popupHeight, 10 * scale);
+                    ctx.stroke();
 
                     // 팝업 내용
-                    ctx.fillStyle = 'black';
+                    ctx.fillStyle = 'white';
+                    ctx.font = `${14 * scale}px Arial`;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    
+                    // 제목 (노드 라벨)
+                    ctx.font = `bold ${16 * scale}px Arial`;
+                    ctx.fillText(node.label, popupX + 20 * scale, popupY + 20 * scale);
+                    
+                    // 구분선
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.beginPath();
+                    ctx.moveTo(popupX + 20 * scale, popupY + 50 * scale);
+                    ctx.lineTo(popupX + popupWidth - 20 * scale, popupY + 50 * scale);
+                    ctx.stroke();
+
+                    // 노드 ID
                     ctx.font = `${12 * scale}px Arial`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('Popup Content', popupX + popupWidth / 2, popupY + popupHeight / 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.fillText(`ID: ${node.id}`, popupX + 20 * scale, popupY + 70 * scale);
+
+                    // 위치 정보
+                    ctx.fillText(`Position: (${Math.round(node.x)}, ${Math.round(node.y)})`, popupX + 20 * scale, popupY + 90 * scale);
                 }
 
                 // 선택된 노드의 레이더 애니메이션
