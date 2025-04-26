@@ -1,20 +1,22 @@
 export interface Node {
-    id: number;
+    id: string;
     x: number;
     y: number;
     label: string;
+    shape: 'circle' | 'square';
+    popup: boolean;
 }
 
 export interface Link {
-    from: number;
-    to: number;
+    from: string;
+    to: string;
 }
 
 export interface NodeContextMenu {
     visible: boolean;
     x: number;
     y: number;
-    nodeId: number | null;
+    nodeId: string | null;
 }
 
 export interface CanvasContextMenu {
@@ -24,8 +26,8 @@ export interface CanvasContextMenu {
 }
 
 export interface Group {
-    id: number;
-    nodeIds: number[];
+    id: string;
+    nodeIds: string[];
     centerX: number;
     centerY: number;
     radius: number;

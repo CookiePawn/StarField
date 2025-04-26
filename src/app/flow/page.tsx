@@ -13,10 +13,10 @@ const FlowPage = () => {
   const [scale, setScale] = useState(1);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [links, setLinks] = useState<Link[]>([]);
-  const [draggingNode, setDraggingNode] = useState<number | null>(null);
-  const [selectedNode, setSelectedNode] = useState<number | null>(null);
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectingFrom, setConnectingFrom] = useState<number | null>(null);
+  const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState<NodeContextMenu>({
     visible: false,
@@ -119,12 +119,13 @@ const FlowPage = () => {
 
   const handleAddNode = () => {
     const { x, y } = findEmptyPosition(nodes);
-
     const newNode: Node = {
-      id: nodeIdRef.current++,
-      x,
-      y,
-      label: 'New Node'
+        id: `node-${Date.now()}`,
+        x,
+        y,
+        label: 'New Node',
+        shape: 'circle',
+        popup: false
     };
     setNodes([...nodes, newNode]);
   };

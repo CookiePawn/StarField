@@ -9,14 +9,14 @@ interface UseCanvasProps {
     scale: number;
     nodes: Node[];
     links: Link[];
-    selectedNode: number | null;
-    draggingNode: number | null;
+    selectedNode: string | null;
+    draggingNode: string | null;
     isConnecting: boolean;
-    connectingFrom: number | null;
+    connectingFrom: string | null;
     mousePosition: { x: number; y: number };
     setIsDragging: (value: boolean) => void;
-    setDraggingNode: (value: number | null) => void;
-    setSelectedNode: (value: number | null) => void;
+    setDraggingNode: (value: string | null) => void;
+    setSelectedNode: (value: string | null) => void;
     setNodes: (value: Node[]) => void;
     setLinks: (value: Link[]) => void;
     setOffset: (value: { x: number; y: number }) => void;
@@ -24,7 +24,7 @@ interface UseCanvasProps {
     setMousePosition: (value: { x: number; y: number }) => void;
     setIsGrabbing: (value: boolean) => void;
     setIsConnecting: (value: boolean) => void;
-    setConnectingFrom: (value: number | null) => void;
+    setConnectingFrom: (value: string | null) => void;
     dragStart: React.RefObject<{ x: number; y: number }>;
     setContextMenu: (menu: NodeContextMenu) => void;
     setCanvasContextMenu: (menu: CanvasContextMenu) => void;
@@ -32,8 +32,8 @@ interface UseCanvasProps {
 }
 
 interface Group {
-    id: number;
-    nodeIds: number[];
+    id: string;
+    nodeIds: string[];
     centerX: number;
     centerY: number;
     radius: number;
@@ -74,7 +74,7 @@ export const useCanvas = ({
     const animationFrameRef = useRef<number | undefined>(undefined);
     const selectedLinkRef = useRef<Link | null>(null);
     const dragBoxRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
-    const selectedNodesRef = useRef<number[]>([]);
+    const selectedNodesRef = useRef<string[]>([]);
     const groupsRef = useRef<Group[]>([]);
     const selectedGroupRef = useRef<Group | null>(null);
     const dragOffset = useRef<{ x: number; y: number } | null>(null);
@@ -135,7 +135,7 @@ export const useCanvas = ({
                 }
             }
             // Command+G로 그룹 생성
-            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyG' && selectedNodesRef.current.length > 0) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'g' && selectedNodesRef.current.length > 0) {
                 const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
                 if (selectedNodes.length > 0) {
                     // 그룹의 중심점 계산
@@ -149,7 +149,7 @@ export const useCanvas = ({
 
                     // 새 그룹 생성
                     const newGroup: Group = {
-                        id: Date.now(),
+                        id: `group-${Date.now()}`,
                         nodeIds: selectedNodesRef.current,
                         centerX,
                         centerY,
@@ -239,22 +239,23 @@ export const useCanvas = ({
                     setSelectedNode(selectedNodesRef.current.length === 1 ? selectedNodesRef.current[0] : null);
                 } else if (e.altKey) {
                     // Option/Alt+클릭: 노드 복사
-                    const newNode = {
-                        ...clickedNode,
-                        id: Date.now(),
+                    const newNode: Node = {
+                        id: `node-${Date.now()}`,
                         x: clickedNode.x,
-                        y: clickedNode.y
+                        y: clickedNode.y,
+                        label: clickedNode.label,
+                        shape: clickedNode.shape,
+                        popup: clickedNode.popup
                     };
                     setNodes([...nodes, newNode]);
 
                     // 노드가 속한 모든 그룹 찾기 (중첩된 그룹 포함)
-                    const findParentGroups = (nodeId: number, groups: Group[]): Group[] => {
+                    const findParentGroups = (nodeId: string, groups: Group[]): Group[] => {
                         const parentGroups: Group[] = [];
-                        const findGroups = (id: number) => {
+                        const findGroups = (id: string) => {
                             groups.forEach(group => {
                                 if (group.nodeIds.includes(id)) {
                                     parentGroups.push(group);
-                                    // 그룹이 다른 그룹에 속해있는지 확인
                                     findGroups(group.id);
                                 }
                             });
@@ -347,51 +348,31 @@ export const useCanvas = ({
 
         // 더블클릭 이벤트 추가
         const handleDoubleClick = (e: MouseEvent) => {
-            if (e.button === 0) { // 좌클릭
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left - offset.x) / scale;
-                const y = (e.clientY - rect.top - offset.y) / scale;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left - offset.x) / scale;
+            const y = (e.clientY - rect.top - offset.y) / scale;
 
-                // 그룹 텍스트 더블클릭 확인
-                const clickedGroupText = groupsRef.current.find(group => {
-                    const textX = group.centerX;
-                    const textY = group.centerY - group.radius - 20;
-                    const textWidth = ctx.measureText(group.name).width / scale;
-                    const textHeight = 14; // 폰트 크기
+            // 클릭한 위치에 노드가 있는지 확인
+            const clickedNode = nodes.find(node => {
+                const dx = node.x - x;
+                const dy = node.y - y;
+                return Math.sqrt(dx * dx + dy * dy) <= 50;
+            });
 
-                    return (
-                        x >= textX - textWidth / 2 &&
-                        x <= textX + textWidth / 2 &&
-                        y >= textY - textHeight / 2 &&
-                        y <= textY + textHeight / 2
-                    );
+            if (clickedNode) {
+                // 노드 더블클릭 시 팝업 토글
+                setNodes(nodes.map(node => 
+                    node.id === clickedNode.id 
+                        ? { ...node, popup: !node.popup }
+                        : node
+                ));
+            } else {
+                // 배경 더블클릭 시 노드 생성 메뉴 표시
+                setCanvasContextMenu({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY
                 });
-
-                if (clickedGroupText) {
-                    // 다른 그룹이 편집 중이면 편집 모드 종료
-                    const editingGroup = groupsRef.current.find(group => group.isEditing);
-                    if (editingGroup && editingGroup.id !== clickedGroupText.id) {
-                        editingGroup.isEditing = false;
-                    }
-                    clickedGroupText.isEditing = true;
-                    return;
-                }
-
-                // 클릭한 위치에 노드가 있는지 확인
-                const clickedNode = nodes.find(node => {
-                    const dx = node.x - x;
-                    const dy = node.y - y;
-                    return Math.sqrt(dx * dx + dy * dy) <= 50;
-                });
-
-                if (!clickedNode) {
-                    // 배경 더블클릭 시 노드 생성 메뉴 표시
-                    setCanvasContextMenu({
-                        visible: true,
-                        x: e.clientX,
-                        y: e.clientY
-                    });
-                }
             }
         };
 
@@ -946,7 +927,7 @@ export const useCanvas = ({
                 );
                 
                 // 호버 상태에 따른 그라데이션 색상 조절
-                const whiteColor = isHovered ? 100 : 255; // 호버 시 200, 기본 255
+                const whiteColor = isHovered ? 100 : 255;
                 gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
                 gradient.addColorStop(1, `rgba(${whiteColor}, ${whiteColor}, ${whiteColor}, ${opacity})`);
 
@@ -957,11 +938,35 @@ export const useCanvas = ({
                 ctx.fill();
 
                 // 중앙 흰색 원 추가
-                const centerColor = isHovered ? 200 : 255; // 호버 시 200, 기본 255
+                const centerColor = isHovered ? 200 : 255;
                 ctx.fillStyle = `rgba(${centerColor}, ${centerColor}, ${centerColor}, ${opacity})`;
                 ctx.beginPath();
                 ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 39 * scale, 0, Math.PI * 2);
                 ctx.fill();
+
+                // 팝업 그리기
+                if (node.popup) {
+                    const popupWidth = 200 * scale;
+                    const popupHeight = 100 * scale;
+                    const popupX = node.x * scale + offset.x - popupWidth / 2;
+                    const popupY = node.y * scale + offset.y + 60 * scale; // 노드 아래에 위치
+
+                    // 팝업 배경
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(popupX, popupY, popupWidth, popupHeight);
+
+                    // 팝업 테두리
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(popupX, popupY, popupWidth, popupHeight);
+
+                    // 팝업 내용
+                    ctx.fillStyle = 'black';
+                    ctx.font = `${12 * scale}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('Popup Content', popupX + popupWidth / 2, popupY + popupHeight / 2);
+                }
 
                 // 선택된 노드의 레이더 애니메이션
                 if (selectedNode === node.id || selectedNodesRef.current.includes(node.id)) {
