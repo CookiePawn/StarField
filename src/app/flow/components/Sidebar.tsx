@@ -1,5 +1,9 @@
+'use client';
+
 import React from 'react';
+import Image from 'next/image';
 import styles from '../styles/sidebar.module.css';
+import { Plus, Minus, Dot } from '../../../assets/icons/index';
 
 interface EditorSidebarProps {
     onAddNode: () => void;
@@ -32,13 +36,19 @@ export const ZoomSidebar: React.FC<{ scale: number, setScale: (scale: number) =>
                 className={styles.zoomSidebarButton}
                 onClick={() => setScale(scale + 0.1)}
             >
-                <p>+</p>
+                <Image src={Plus} alt="plus" width={14} height={14} />
             </div>
             <div
                 className={styles.zoomSidebarButton}
                 onClick={() => setScale(scale - 0.1)}
             >
-                <p>-</p>
+                <Image src={Minus} alt="minus" width={14} height={14} />
+            </div>
+            <div
+                className={styles.zoomSidebarButton}
+                onClick={() => setScale(1)}
+            >
+                <Image src={Dot} alt="dot" width={14} height={14} />
             </div>
         </div>
     );

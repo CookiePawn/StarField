@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start:dev": "env-cmd -f .env.development next dev --turbopack",
-    "start:prod": "env-cmd -f .env.production next dev --turbopack",
-    "start:local": "env-cmd -f .env.local next dev --turbopack",
+    "start:dev": "env-cmd -f .env.development next dev",
+    "start:prod": "env-cmd -f .env.production next dev",
+    "start:local": "env-cmd -f .env.local next dev",
     "build:dev": "env-cmd -f .env.development next build",
     "build:prod": "env-cmd -f .env.production next build",
     "build:local": "env-cmd -f .env.local next build",
-    "start": "env-cmd -f .env.development next dev --turbopack",
+    "start": "env-cmd -f .env.development next dev",
     "lint": "next lint"
   },
   "dependencies": {
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@svgr/webpack": "^8.1.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
