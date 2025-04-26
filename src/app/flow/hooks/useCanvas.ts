@@ -1266,15 +1266,12 @@ export const useCanvas = ({
                         ctx.roundRect(x, y, width, height, height / 2);
                         ctx.stroke();
 
-                        // 라벨
+                        // 라벨과 값
                         ctx.font = `${12 * scale}px Arial`;
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                         ctx.textAlign = 'left';
-                        ctx.textBaseline = 'top';
-                        ctx.fillText(label, x + 10 * scale, y - 20 * scale);
-
-                        // 값
-                        ctx.fillText(`${Math.round(value * 100)}%`, x + width + 10 * scale, y + height / 2);
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${label}: ${Math.round(value * 100)}%`, x, y - 15 * scale);
                     };
 
                     // 토글 버튼
@@ -1297,18 +1294,18 @@ export const useCanvas = ({
                         ctx.font = `${12 * scale}px Arial`;
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                         ctx.textAlign = 'left';
-                        ctx.textBaseline = 'top';
-                        ctx.fillText(label, x + 10 * scale, y - 20 * scale);
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(label, x, y - 15 * scale);
                     };
 
                     // 1. 노드 이름 수정
-                    drawSectionTitle('1. 노드 이름 수정', popupY + 20 * scale);
+                    drawSectionTitle('1. 노드 이름', popupY + 20 * scale);
                     drawInputField(
                         popupX + 20 * scale,
                         popupY + 50 * scale,
                         360 * scale,
                         30 * scale,
-                        '노드 이름'
+                        ''
                     );
 
                     // 구분선
@@ -1321,7 +1318,7 @@ export const useCanvas = ({
                         popupY + 150 * scale,
                         360 * scale,
                         60 * scale,
-                        '지침 입력'
+                        ''
                     );
 
                     // 구분선
@@ -1334,7 +1331,7 @@ export const useCanvas = ({
                         popupY + 280 * scale,
                         360 * scale,
                         60 * scale,
-                        '텍스트 입력'
+                        ''
                     );
 
                     // 구분선
@@ -1356,18 +1353,18 @@ export const useCanvas = ({
                     // 5-1. AI 모델 선택
                     drawToggle(
                         popupX + 20 * scale,
-                        popupY + 540 * scale,
+                        popupY + 560 * scale,
                         100 * scale,
                         20 * scale,
-                        'GPT-4',
+                        'AI 모델',
                         true
                     );
 
                     // 5-2. max token 설정
                     drawSlider(
                         popupX + 20 * scale,
-                        popupY + 580 * scale,
-                        360 * scale,
+                        popupY + 620 * scale,
+                        300 * scale,
                         10 * scale,
                         'Max Token',
                         0.5
@@ -1376,8 +1373,8 @@ export const useCanvas = ({
                     // 5-3. 창의력/연관도 설정
                     drawSlider(
                         popupX + 20 * scale,
-                        popupY + 620 * scale,
-                        360 * scale,
+                        popupY + 670 * scale,
+                        300 * scale,
                         10 * scale,
                         '창의력',
                         0.7
