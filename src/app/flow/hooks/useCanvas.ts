@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Node, Link, NodeContextMenu, CanvasContextMenu } from '../type';
+import { GroupNameInput } from '../components/GroupNameInput';
 
 interface UseCanvasProps {
     isMounted: boolean;
@@ -29,6 +30,7 @@ interface UseCanvasProps {
     setContextMenu: (menu: NodeContextMenu) => void;
     setCanvasContextMenu: (menu: CanvasContextMenu) => void;
     dotColor: string;
+    setEditingGroup: (group: Group | null) => void;
 }
 
 interface Group {
@@ -68,7 +70,8 @@ export const useCanvas = ({
     dragStart,
     setContextMenu,
     setCanvasContextMenu,
-    dotColor
+    dotColor,
+    setEditingGroup,
 }: UseCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number | undefined>(undefined);
@@ -79,6 +82,36 @@ export const useCanvas = ({
     const selectedGroupRef = useRef<Group | null>(null);
     const dragOffset = useRef<{ x: number; y: number } | null>(null);
     const isComposing = useRef<boolean>(false);
+    const editingGroupRef = useRef<Group | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const inputPositionRef = useRef<{ x: number; y: number } | null>(null);
+    const isDraggingGroupRef = useRef<boolean>(false);
+    const editingGroupIdRef = useRef<string | null>(null);
+    const isInputActiveRef = useRef<boolean>(false);
+    const lastEditingGroupRef = useRef<Group | null>(null);
+    const inputUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleGroupNameUpdate = (name: string) => {
+        if (editingGroupRef.current) {
+            editingGroupRef.current.name = name;
+            // groups 배열 업데이트
+            const updatedGroups = groupsRef.current.map(group => 
+                group.id === editingGroupRef.current?.id 
+                    ? { ...group, name } 
+                    : group
+            );
+            groupsRef.current = updatedGroups;
+        }
+    };
+
+    const handleGroupNameFinish = () => {
+        if (editingGroupRef.current) {
+            editingGroupRef.current.isEditing = false;
+            editingGroupIdRef.current = null;
+            setEditingGroup(null);
+            editingGroupRef.current = null;
+        }
+    };
 
     useEffect(() => {
         if (!isMounted) return;
@@ -195,6 +228,15 @@ export const useCanvas = ({
             const editingGroup = groupsRef.current.find(group => group.isEditing);
             if (editingGroup && editingGroup.name.length < 30) {
                 editingGroup.name += e.data;
+            }
+        };
+
+        // input 이벤트 처리 추가
+        const handleInput = (e: Event) => {
+            const inputEvent = e as InputEvent;
+            const editingGroup = groupsRef.current.find(group => group.isEditing);
+            if (editingGroup && editingGroup.name.length < 30 && inputEvent.data) {
+                editingGroup.name += inputEvent.data;
             }
         };
 
@@ -342,6 +384,7 @@ export const useCanvas = ({
             if (clickedGroup) {
                 selectedGroupRef.current = clickedGroup;
                 setIsDragging(true);
+                isDraggingGroupRef.current = true;
                 dragStart.current = {
                     x: e.clientX - offset.x,
                     y: e.clientY - offset.y
@@ -404,6 +447,9 @@ export const useCanvas = ({
 
             if (clickedGroupName) {
                 clickedGroupName.isEditing = true;
+                editingGroupIdRef.current = clickedGroupName.id;
+                editingGroupRef.current = clickedGroupName;
+                setEditingGroup(clickedGroupName);
                 return;
             }
 
@@ -563,6 +609,7 @@ export const useCanvas = ({
                 setSelectedNode(null);
             }
             canvas.style.cursor = 'default';
+            isDraggingGroupRef.current = false;
         };
 
         // 휠 이벤트 처리
@@ -645,6 +692,7 @@ export const useCanvas = ({
         window.addEventListener('keyup', handleKeyUp);
         window.addEventListener('compositionstart', handleCompositionStart);
         window.addEventListener('compositionend', handleCompositionEnd);
+        window.addEventListener('input', handleInput);
         canvas.addEventListener('mousedown', handleMouseDown);
         canvas.addEventListener('dblclick', handleDoubleClick);
         canvas.addEventListener('dblclick', handleGroupDoubleClick);
@@ -817,41 +865,7 @@ export const useCanvas = ({
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                if (group.isEditing) {
-                    // 편집 중인 경우 텍스트 입력 필드 스타일
-                    const textWidth = ctx.measureText(group.name).width;
-                    const padding = 20 * scale; // 좌우 패딩
-                    const minWidth = 100 * scale; // 최소 너비
-                    const maxWidth = 300 * scale; // 최대 너비
-                    const inputWidth = Math.min(Math.max(textWidth + padding, minWidth), maxWidth);
-
-                    // 텍스트 입력 필드 배경
-                    ctx.fillStyle = '#222222';
-                    ctx.fillRect(
-                        group.centerX * scale + offset.x - inputWidth / 2,
-                        (group.centerY - group.radius - 30) * scale + offset.y,
-                        inputWidth,
-                        30 * scale
-                    );
-
-                    // 텍스트 입력 필드 테두리
-                    ctx.strokeStyle = 'white';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(
-                        group.centerX * scale + offset.x - inputWidth / 2,
-                        (group.centerY - group.radius - 30) * scale + offset.y,
-                        inputWidth,
-                        30 * scale
-                    );
-
-                    // 텍스트 표시
-                    ctx.fillStyle = 'white';
-                    ctx.fillText(
-                        group.name,
-                        group.centerX * scale + offset.x,
-                        (group.centerY - group.radius - 20) * scale + offset.y
-                    );
-                } else {
+                if (!group.isEditing) {
                     // 일반 텍스트 표시
                     ctx.fillStyle = strokeStyle;
                     ctx.fillText(
@@ -1109,6 +1123,7 @@ export const useCanvas = ({
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('compositionstart', handleCompositionStart);
             window.removeEventListener('compositionend', handleCompositionEnd);
+            window.removeEventListener('input', handleInput);
             canvas.removeEventListener('mousedown', handleMouseDown);
             canvas.removeEventListener('dblclick', handleDoubleClick);
             canvas.removeEventListener('dblclick', handleGroupDoubleClick);
@@ -1119,6 +1134,18 @@ export const useCanvas = ({
             // 애니메이션 프레임 취소
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
+            }
+            try {
+                if (inputRef.current && document.body.contains(inputRef.current)) {
+                    inputRef.current.remove();
+                }
+            } catch (e) {
+                // 무시
+            }
+            inputRef.current = null;
+            if (inputUpdateTimeoutRef.current) {
+                clearTimeout(inputUpdateTimeoutRef.current);
+                inputUpdateTimeoutRef.current = null;
             }
         };
     }, [
@@ -1148,8 +1175,14 @@ export const useCanvas = ({
         setOffset,
         setScale,
         setSelectedNode,
-        dotColor
+        dotColor,
+        setEditingGroup,
     ]);
 
-    return canvasRef;
+    return {
+        canvasRef,
+        editingGroup: editingGroupRef.current,
+        handleGroupNameUpdate,
+        handleGroupNameFinish,
+    };
 }; 

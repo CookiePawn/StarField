@@ -2,9 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { EditorSidebar, ZoomSidebar, Header, ContextMenu_Node, ContextMenu_Canvas } from './components';
-import { Node, NodeContextMenu, Link, CanvasContextMenu } from './type'
+import { Node, NodeContextMenu, Link, CanvasContextMenu, Group } from './type'
 import { useCanvas } from './hooks';
 import styles from './styles/flow.module.css';
+import { GroupNameInput } from './components/GroupNameInput';
 
 const FlowPage = () => {
   const [isGrabbing, setIsGrabbing] = useState(false);
@@ -33,6 +34,7 @@ const FlowPage = () => {
   const dragStart = useRef({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
   const [dotColor, setDotColor] = useState('#777777');
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
 
   const NODE_RADIUS = 30;
   const NODE_SPACING = NODE_RADIUS * 3;
@@ -41,7 +43,7 @@ const FlowPage = () => {
     setIsMounted(true);
   }, []);
 
-  const canvasRef = useCanvas({
+  const { canvasRef, handleGroupNameUpdate, handleGroupNameFinish } = useCanvas({
     isMounted,
     isGrabbing,
     isDragging,
@@ -68,7 +70,8 @@ const FlowPage = () => {
     dragStart,
     setContextMenu,
     setCanvasContextMenu,
-    dotColor
+    dotColor,
+    setEditingGroup
   });
 
   const getViewportCenter = () => {
@@ -168,6 +171,15 @@ const FlowPage = () => {
           nodeIdRef={nodeIdRef}
           scale={scale}
           offset={offset}
+        />
+      )}
+      {editingGroup && (
+        <GroupNameInput
+          group={editingGroup}
+          scale={scale}
+          offset={offset}
+          onUpdate={handleGroupNameUpdate}
+          onFinish={handleGroupNameFinish}
         />
       )}
     </div>
