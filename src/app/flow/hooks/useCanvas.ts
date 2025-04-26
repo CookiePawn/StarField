@@ -183,6 +183,7 @@ export const useCanvas = ({
             }
             // Command+G로 그룹 생성
             if ((e.ctrlKey || e.metaKey) && e.key === 'g' && selectedNodesRef.current.length > 1) {
+                e.preventDefault(); // 기본 동작 방지
                 const selectedNodes = nodes.filter(node => selectedNodesRef.current.includes(node.id));
                 if (selectedNodes.length > 1) {
                     // 그룹의 중심점 계산
