@@ -319,6 +319,12 @@ export const useCanvas = ({
             const x = (e.clientX - rect.left - offset.x) / scale;
             const y = (e.clientY - rect.top - offset.y) / scale;
 
+            // 먼저 링크 선택 확인
+            selectLink(e.clientX, e.clientY);
+            if (selectedLinkRef.current) {
+                return;
+            }
+
             // 먼저 노드 선택 확인
             const clickedNode = nodes.find(node => {
                 if (node.id === draggingNode) return false; // 본인이 본인에 링크도 안되게
@@ -516,9 +522,6 @@ export const useCanvas = ({
                 };
                 return;
             }
-
-            // 노드가 선택되지 않았을 때만 링크 선택 확인
-            selectLink(e.clientX, e.clientY);
 
             // 배경 클릭 시 드래그 박스 시작 (Control/Command 키를 누른 상태에서만)
             if (!selectedLinkRef.current && (e.ctrlKey || e.metaKey)) {
@@ -953,11 +956,29 @@ export const useCanvas = ({
             const mouseX = (x - rect.left - offset.x) / scale;
             const mouseY = (y - rect.top - offset.y) / scale;
 
+            // 먼저 클릭된 위치가 어떤 그룹 안에 있는지 확인
+            const clickedGroup = groupsRef.current.find(group => {
+                const distance = Math.sqrt(
+                    Math.pow(mouseX - group.centerX, 2) + Math.pow(mouseY - group.centerY, 2)
+                );
+                return distance <= group.radius;
+            });
+
             // 모든 링크에 대해 거리 계산
             for (const link of links) {
                 const fromNode = nodes.find(n => n.id === link.from);
                 const toNode = nodes.find(n => n.id === link.to);
                 if (!fromNode || !toNode) continue;
+
+                // 링크가 그룹 안에 있는지 확인
+                const isLinkInGroup = clickedGroup && 
+                    clickedGroup.nodeIds.includes(link.from) && 
+                    clickedGroup.nodeIds.includes(link.to);
+
+                // 그룹 안에서 클릭했을 때는 그룹 안의 링크만 선택
+                if (clickedGroup && !isLinkInGroup) {
+                    continue;
+                }
 
                 // 링크의 선분과 마우스 포인트 사이의 거리 계산
                 const distance = distanceToLine(
@@ -972,6 +993,7 @@ export const useCanvas = ({
                     return;
                 }
             }
+
             selectedLinkRef.current = null;
         };
 
