@@ -197,8 +197,8 @@ const FlowPage = () => {
       )}
       {popupNode && (
         <NodeModal
-          x={popupNode.x * scale + offset.x}
-          y={popupNode.y * scale + offset.y}
+          x={popupNode.x * scale + offset.x - 125}
+          y={popupNode.y * scale + offset.y + 60 * scale}
           scale={scale}
           setScale={setScale}
           tab={popupTab}
