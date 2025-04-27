@@ -81,7 +81,6 @@ export const useCanvas = ({
     const selectedGroupRef = useRef<Group | null>(null);
     const dragOffset = useRef<{ x: number; y: number } | null>(null);
     const isComposing = useRef<boolean>(false);
-    const composingValue = useRef<string>('');
     const editingGroupRef = useRef<Group | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const editingNodeRef = useRef<Node | null>(null);
