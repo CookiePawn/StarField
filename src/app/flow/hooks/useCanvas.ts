@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Node, Link, NodeContextMenu, CanvasContextMenu } from '../type';
+import { NodeModal } from '../components/NodeModal';
 
 interface UseCanvasProps {
     isMounted: boolean;
@@ -42,6 +43,41 @@ interface Group {
     isEditing: boolean;
 }
 
+const callGeminiAPI = async (inputText: string, instruction?: string) => {
+    const API_KEY = 'AIzaSyCq-S1vAxRvFimOAocUAdfN5LcJTsMGjkk';
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+    const prompt = instruction ? `${instruction}\n\n${inputText}` : inputText;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API 호출 실패 상세:', errorText);
+            throw new Error('API 호출 실패: ' + errorText);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text || '응답이 없습니다.';
+    } catch (error: any) {
+        console.error('API 호출 중 오류 발생:', error);
+        throw error;
+    }
+};
+
 export const useCanvas = ({
     isMounted,
     isGrabbing,
@@ -70,8 +106,13 @@ export const useCanvas = ({
     setContextMenu,
     setCanvasContextMenu,
     dotColor,
-    setEditingGroup,
+    setEditingGroup
 }: UseCanvasProps) => {
+    const [popupNode, setPopupNode] = useState<Node | null>(null);
+    const [popupTab, setPopupTab] = useState<'input' | 'results' | 'settings'>('input');
+    const [inputText, setInputText] = useState('');
+    const [outputText, setOutputText] = useState('');
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number | undefined>(undefined);
     const selectedLinkRef = useRef<Link | null>(null);
@@ -128,6 +169,53 @@ export const useCanvas = ({
                     input.remove();
                 }
             }
+        }
+    };
+
+    const handleNodeDoubleClick = (e: MouseEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - offset.x) / scale;
+        const y = (e.clientY - rect.top - offset.y) / scale;
+
+        // 노드 클릭 확인
+        const clickedNode = nodes.find(node => {
+            const dx = node.x - x;
+            const dy = node.y - y;
+            return Math.sqrt(dx * dx + dy * dy) <= 50;
+        });
+
+        if (clickedNode) {
+            // 노드 더블클릭 시 팝업 토글
+            if (popupNode?.id === clickedNode.id) {
+                setPopupNode(null);
+            } else {
+                setPopupNode(clickedNode);
+                setPopupTab('input');
+                setInputText('');
+                setOutputText('');
+            }
+        } else {
+            // 배경 더블클릭 시 노드 생성 메뉴 표시
+            setCanvasContextMenu({
+                visible: true,
+                x: e.clientX,
+                y: e.clientY
+            });
+        }
+    };
+
+    const handleRun = async (input: string, instruction: string) => {
+        try {
+            const response = await callGeminiAPI(input, instruction);
+            setOutputText(response);
+            setPopupTab('results');
+        } catch (error) {
+            console.error('API 호출 중 오류 발생:', error);
+            setOutputText('오류가 발생했습니다. 다시 시도해주세요.');
+            setPopupTab('results');
         }
     };
 
@@ -612,11 +700,10 @@ export const useCanvas = ({
 
             if (clickedNode) {
                 // 노드 더블클릭 시 팝업 토글
-                setNodes(nodes.map(node => 
-                    node.id === clickedNode.id 
-                        ? { ...node, popup: !node.popup }
-                        : node
-                ));
+                setPopupNode(clickedNode);
+                setPopupTab('input');
+                setInputText('');
+                setOutputText('');
             } else {
                 // 배경 더블클릭 시 노드 생성 메뉴 표시
                 setCanvasContextMenu({
@@ -1727,5 +1814,13 @@ export const useCanvas = ({
         editingGroup: editingGroupRef.current,
         handleGroupNameUpdate,
         handleGroupNameFinish,
+        popupNode,
+        popupTab,
+        setPopupTab,
+        inputText,
+        setInputText,
+        outputText,
+        handleRun,
+        setPopupNode
     };
 }; 

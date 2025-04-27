@@ -6,6 +6,7 @@ import { Node, NodeContextMenu, Link, CanvasContextMenu, Group } from './type'
 import { useCanvas } from './hooks';
 import styles from './styles/flow.module.css';
 import { GroupNameInput } from './components/GroupNameInput';
+import { NodeModal } from './components/NodeModal';
 
 const FlowPage = () => {
   const [isGrabbing, setIsGrabbing] = useState(false);
@@ -43,7 +44,19 @@ const FlowPage = () => {
     setIsMounted(true);
   }, []);
 
-  const { canvasRef, handleGroupNameUpdate, handleGroupNameFinish } = useCanvas({
+  const { 
+    canvasRef, 
+    handleGroupNameUpdate, 
+    handleGroupNameFinish,
+    popupNode,
+    popupTab,
+    setPopupTab,
+    inputText,
+    setInputText,
+    outputText,
+    handleRun,
+    setPopupNode
+  } = useCanvas({
     isMounted,
     isGrabbing,
     isDragging,
@@ -180,6 +193,21 @@ const FlowPage = () => {
           offset={offset}
           onUpdate={handleGroupNameUpdate}
           onFinish={handleGroupNameFinish}
+        />
+      )}
+      {popupNode && (
+        <NodeModal
+          x={popupNode.x * scale + offset.x}
+          y={popupNode.y * scale + offset.y}
+          scale={scale}
+          setScale={setScale}
+          tab={popupTab}
+          onTabChange={setPopupTab}
+          inputText={inputText}
+          onInputTextChange={setInputText}
+          onClose={() => setPopupNode(null)}
+          onRun={handleRun}
+          outputText={outputText}
         />
       )}
     </div>
