@@ -1312,14 +1312,28 @@ export const useCanvas = ({
 
         // 노드 그리기 수정
         const drawNodes = () => {
+            // 각 노드의 연결된 링크 수 계산
+            const nodeLinkCounts = new Map<string, number>();
+            links.forEach(link => {
+                nodeLinkCounts.set(link.from, (nodeLinkCounts.get(link.from) || 0) + 1);
+                nodeLinkCounts.set(link.to, (nodeLinkCounts.get(link.to) || 0) + 1);
+            });
+
             nodes.forEach(node => {
                 // 마우스 호버 상태 확인
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
                 const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
+
+                // 연결된 링크 수에 따른 노드 크기 계산
+                const linkCount = nodeLinkCounts.get(node.id) || 0;
+                const baseSize = 50;
+                const sizeMultiplier = 1 + (linkCount * 0.1); // 링크 1개당 10%씩 크기 증가
+                const nodeSize = baseSize * sizeMultiplier;
+
                 const isHovered = Math.sqrt(
                     Math.pow(node.x - mouseX, 2) + Math.pow(node.y - mouseY, 2)
-                ) <= 50;
+                ) <= nodeSize;
 
                 // 그룹 선택 상태에서 그룹에 속하지 않은 노드인지 확인
                 const isInSelectedGroup = selectedGroupRef.current?.nodeIds.includes(node.id) ?? true;
@@ -1328,7 +1342,7 @@ export const useCanvas = ({
                 // 검은색 배경
                 ctx.fillStyle = 'black';
                 ctx.beginPath();
-                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, nodeSize * scale, 0, Math.PI * 2);
                 ctx.fill();
 
                 // 흰색 그라데이션 생성
@@ -1338,7 +1352,7 @@ export const useCanvas = ({
                     0,
                     node.x * scale + offset.x,
                     node.y * scale + offset.y,
-                    50 * scale
+                    nodeSize * scale
                 );
                 
                 // 호버 상태에 따른 그라데이션 색상 조절
@@ -1349,14 +1363,14 @@ export const useCanvas = ({
                 // 그라데이션 적용
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
-                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 50 * scale, 0, Math.PI * 2);
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, nodeSize * scale, 0, Math.PI * 2);
                 ctx.fill();
 
                 // 중앙 흰색 원 추가
                 const centerColor = isHovered ? 200 : 255;
                 ctx.fillStyle = `rgba(${centerColor}, ${centerColor}, ${centerColor}, ${opacity})`;
                 ctx.beginPath();
-                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, 39 * scale, 0, Math.PI * 2);
+                ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, (nodeSize * 0.78) * scale, 0, Math.PI * 2);
                 ctx.fill();
 
                 // 팝업 그리기
@@ -1364,7 +1378,7 @@ export const useCanvas = ({
                     const popupWidth = 400 * scale;
                     const popupHeight = 700 * scale;
                     const popupX = node.x * scale + offset.x - popupWidth / 2;
-                    const popupY = node.y * scale + offset.y + 60 * scale;
+                    const popupY = node.y * scale + offset.y + nodeSize * scale + 10 * scale;
 
                     // 팝업 배경
                     ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
@@ -1616,20 +1630,12 @@ export const useCanvas = ({
                 // 선택된 노드의 레이더 애니메이션
                 if (selectedNode === node.id || selectedNodesRef.current.includes(node.id)) {
                     const time = Date.now() / 1000;
-                    // 빠른 펄스 애니메이션
-                    const pulseProgress = (Math.sin(time * 3.5) + 0.5) / 2; // 0에서 1 사이로 정규화
-                    
-                    // 최소 반경(노드보다 약간 큰 크기)과 최대 반경 설정
-                    const minRadius = 57 * scale;
-                    const maxRadius = 60 * scale;
-                    
-                    // 현재 반경 계산
+                    const pulseProgress = (Math.sin(time * 3.5) + 0.5) / 2;
+                    const minRadius = (nodeSize + 7) * scale;
+                    const maxRadius = (nodeSize + 10) * scale;
                     const currentRadius = minRadius + (maxRadius - minRadius) * pulseProgress;
-                    
-                    // 투명도 계산 (펄스 진행도에 따라 0.4에서 0.6 사이로 변화)
                     const radarOpacity = (0.4 + (0.2 * pulseProgress)) * opacity;
                     
-                    // 레이더 원 그리기
                     ctx.beginPath();
                     ctx.arc(node.x * scale + offset.x, node.y * scale + offset.y, currentRadius, 0, Math.PI * 2);
                     ctx.strokeStyle = `rgba(255, 255, 255, ${radarOpacity})`;
@@ -1638,7 +1644,7 @@ export const useCanvas = ({
                 }
 
                 // 노드 텍스트
-                const textColor = isHovered ? 100 : 0; // 호버 시 200, 기본 255
+                const textColor = isHovered ? 100 : 0;
                 ctx.fillStyle = `rgba(${textColor}, ${textColor}, ${textColor}, ${opacity})`;
                 ctx.font = `${12 * scale}px Arial`;
                 ctx.textAlign = 'center';
