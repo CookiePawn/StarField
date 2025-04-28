@@ -12,8 +12,15 @@
 git clone https://github.com/cookiepawn/starfield.git
 ```
 
+## ADD Branch
+```bash
+git branch cookiepawn
+```
 
-
+## Change Branch
+```bash
+git checkout cookiepawn
+```
 
 
 
