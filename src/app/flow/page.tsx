@@ -146,36 +146,37 @@ const FlowPage = () => {
     setNodes([...nodes, newNode]);
   };
 
-  const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      setIsConnecting(true);
-      setConnectingFrom(nodeId);
-      return;
-    }
-    // 일반 드래그 모드일 때만 노드 이동
-    if (!isConnecting) {
-      setIsDragging(true);
-      setDraggingNode(nodeId);
-      dragStart.current = { x: e.clientX, y: e.clientY };
-    }
-  };
+  // TODO: fix
+  // const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
+  //   if (e.ctrlKey || e.metaKey) {
+  //     e.preventDefault();
+  //     setIsConnecting(true);
+  //     setConnectingFrom(nodeId);
+  //     return;
+  //   }
+  //   // 일반 드래그 모드일 때만 노드 이동
+  //   if (!isConnecting) {
+  //     setIsDragging(true);
+  //     setDraggingNode(nodeId);
+  //     dragStart.current = { x: e.clientX, y: e.clientY };
+  //   }
+  // };
 
-  const handleNodeMouseUp = (e: React.MouseEvent, nodeId: string) => {
-    if (isConnecting && connectingFrom && connectingFrom !== nodeId) {
-      // 새로운 링크 생성
-      const newLink: Link = {
-        id: `link-${Date.now()}`,
-        from: connectingFrom,
-        to: nodeId
-      };
-      setLinks([...links, newLink]);
-    }
-    setIsConnecting(false);
-    setConnectingFrom(null);
-    setIsDragging(false);
-    setDraggingNode(null);
-  };
+  // const handleNodeMouseUp = (e: React.MouseEvent, nodeId: string) => {
+  //   if (isConnecting && connectingFrom && connectingFrom !== nodeId) {
+  //     // 새로운 링크 생성
+  //     const newLink: Link = {
+  //       id: `link-${Date.now()}`,
+  //       from: connectingFrom,
+  //       to: nodeId
+  //     };
+  //     setLinks([...links, newLink]);
+  //   }
+  //   setIsConnecting(false);
+  //   setConnectingFrom(null);
+  //   setIsDragging(false);
+  //   setDraggingNode(null);
+  // };
 
   const handleCanvasMouseMove = (e: React.MouseEvent) => {
     if (isConnecting) {

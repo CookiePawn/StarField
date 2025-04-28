@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Node, Link, NodeContextMenu, CanvasContextMenu } from '../type';
-import { NodeModal } from '../components/NodeModal';
 
 interface UseCanvasProps {
     isMounted: boolean;
@@ -72,7 +71,7 @@ const callGeminiAPI = async (inputText: string, instruction?: string) => {
 
         const data = await response.json();
         return data.candidates[0].content.parts[0].text || '응답이 없습니다.';
-    } catch (error: any) {
+    } catch (error) {
         console.error('API 호출 중 오류 발생:', error);
         throw error;
     }
@@ -172,40 +171,40 @@ export const useCanvas = ({
         }
     };
 
-    const handleNodeDoubleClick = (e: MouseEvent) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    // const handleNodeDoubleClick = (e: MouseEvent) => {
+    //     const canvas = canvasRef.current;
+    //     if (!canvas) return;
 
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left - offset.x) / scale;
-        const y = (e.clientY - rect.top - offset.y) / scale;
+    //     const rect = canvas.getBoundingClientRect();
+    //     const x = (e.clientX - rect.left - offset.x) / scale;
+    //     const y = (e.clientY - rect.top - offset.y) / scale;
 
-        // 노드 클릭 확인
-        const clickedNode = nodes.find(node => {
-            const dx = node.x - x;
-            const dy = node.y - y;
-            return Math.sqrt(dx * dx + dy * dy) <= 50;
-        });
+    //     // 노드 클릭 확인
+    //     const clickedNode = nodes.find(node => {
+    //         const dx = node.x - x;
+    //         const dy = node.y - y;
+    //         return Math.sqrt(dx * dx + dy * dy) <= 50;
+    //     });
 
-        if (clickedNode) {
-            // 노드 더블클릭 시 팝업 토글
-            if (popupNode?.id === clickedNode.id) {
-                setPopupNode(null);
-            } else {
-                setPopupNode(clickedNode);
-                setPopupTab('input');
-                setInputText('');
-                setOutputText('');
-            }
-        } else {
-            // 배경 더블클릭 시 노드 생성 메뉴 표시
-            setCanvasContextMenu({
-                visible: true,
-                x: e.clientX,
-                y: e.clientY
-            });
-        }
-    };
+    //     if (clickedNode) {
+    //         // 노드 더블클릭 시 팝업 토글
+    //         if (popupNode?.id === clickedNode.id) {
+    //             setPopupNode(null);
+    //         } else {
+    //             setPopupNode(clickedNode);
+    //             setPopupTab('input');
+    //             setInputText('');
+    //             setOutputText('');
+    //         }
+    //     } else {
+    //         // 배경 더블클릭 시 노드 생성 메뉴 표시
+    //         setCanvasContextMenu({
+    //             visible: true,
+    //             x: e.clientX,
+    //             y: e.clientY
+    //         });
+    //     }
+    // };
 
     const handleRun = async (input: string, instruction: string) => {
         try {

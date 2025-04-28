@@ -43,14 +43,14 @@ export const callGeminiAPI = async (inputText: string, instruction?: string) => 
 
     const data = await response.json();
     return data.candidates[0].content.parts[0].text || '응답이 없습니다.';
-  } catch (error: any) {
+  } catch (error) {
     console.error('API 호출 중 오류 발생:', error);
     throw error;
   }
 };
 
 export function NodeModal({
-  x, y, scale, setScale, tab, onTabChange, inputText, onInputTextChange, onClose, onRun, outputText
+  x, y, scale, setScale, tab, onTabChange, inputText, onInputTextChange, onRun, outputText
 }: NodeModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [instruction, setInstruction] = useState('');
