@@ -7,6 +7,18 @@
 
 
 
+## Git Clone
+```bash
+git clone https://github.com/cookiepawn/starfield.git
+```
+
+
+
+
+
+
+
+
 ## ENV 분기
 
 [create from root]
