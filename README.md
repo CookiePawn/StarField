@@ -7,26 +7,23 @@
 
 
 
-## Git Clone
+## 1. Git Clone
 ```bash
 git clone https://github.com/cookiepawn/starfield.git
 ```
 
-## ADD Branch
+## 2. ADD Branch
 ```bash
 git branch cookiepawn
 ```
 
-## Change Branch
+## 3. Change Branch
 ```bash
 git checkout cookiepawn
 ```
 
 
-
-
-
-## ENV 분기
+## 4. ADD ENV
 
 [create from root]
 > .env.development
@@ -36,13 +33,13 @@ git checkout cookiepawn
 > .env.local
 
 
-## PROJECT SETTING
+## 5. PROJECT SETTING
 ```bash
 yarn
 ```
 
 
-## RUN PROJECT - Scripts
+## 6. RUN PROJECT - Scripts
 [DEVELOPMENT]
 ```bash
 yarn run start:dev # 개발자 모드 실행
@@ -60,3 +57,27 @@ yarn run build:prod # 빌드
 yarn run start:local # 개발자 모드 실행
 yarn run build:local # 빌드
 ```
+
+
+## 7. Upload github
+```bash
+git add . //변경사항 저장
+
+git commit -m "[fix][node][node linking fix]" //커밋
+
+git push origin cookiepawn //원격 저장소 저장
+
+git checkout main //main 브렌치로 변경
+
+git merge cookiepawn //cookiepawn 브렌치에 병합
+
+git push origin main //원격 저장소 저장
+
+git checkout cookiepawn //cookiepawn 브렌치로 변경
+```
+
+
+
+
+
+
