@@ -146,6 +146,73 @@ const FlowPage = () => {
     setNodes([...nodes, newNode]);
   };
 
+  const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setIsConnecting(true);
+      setConnectingFrom(nodeId);
+      return;
+    }
+    // 일반 드래그 모드일 때만 노드 이동
+    if (!isConnecting) {
+      setIsDragging(true);
+      setDraggingNode(nodeId);
+      dragStart.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleNodeMouseUp = (e: React.MouseEvent, nodeId: string) => {
+    if (isConnecting && connectingFrom && connectingFrom !== nodeId) {
+      // 새로운 링크 생성
+      const newLink: Link = {
+        id: `link-${Date.now()}`,
+        from: connectingFrom,
+        to: nodeId
+      };
+      setLinks([...links, newLink]);
+    }
+    setIsConnecting(false);
+    setConnectingFrom(null);
+    setIsDragging(false);
+    setDraggingNode(null);
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (isConnecting) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        setMousePosition({
+          x: (e.clientX - rect.left - offset.x) / scale,
+          y: (e.clientY - rect.top - offset.y) / scale
+        });
+      }
+    } else if (isDragging && draggingNode) {
+      // 노드 드래그 로직
+      const dx = (e.clientX - dragStart.current.x) / scale;
+      const dy = (e.clientY - dragStart.current.y) / scale;
+      
+      setNodes(nodes.map(node => {
+        if (node.id === draggingNode) {
+          return {
+            ...node,
+            x: node.x + dx,
+            y: node.y + dy
+          };
+        }
+        return node;
+      }));
+      
+      dragStart.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    setIsDragging(false);
+    setDraggingNode(null);
+    setIsConnecting(false);
+    setConnectingFrom(null);
+  };
+
   if (!isMounted) {
     return null;
   }
@@ -164,6 +231,8 @@ const FlowPage = () => {
         ref={canvasRef}
         className={styles.canvas}
         onContextMenu={(e) => e.preventDefault()}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseUp={handleCanvasMouseUp}
       />
       {contextMenu.visible && contextMenu.nodeId !== null && (
         <ContextMenu_Node

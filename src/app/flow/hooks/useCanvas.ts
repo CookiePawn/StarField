@@ -431,8 +431,12 @@ export const useCanvas = ({
                     }
                     setSelectedNode(selectedNodesRef.current.length === 1 ? selectedNodesRef.current[0] : null);
                     
+                    // 연결 모드 진입
                     setIsConnecting(true);
                     setConnectingFrom(clickedNode.id);
+                    setIsDragging(false); // 드래그 모드 비활성화
+                    setDraggingNode(null); // 드래그 노드 초기화
+                    return; // 연결 모드로 진입하면 여기서 종료
                 } else if (e.altKey) {
                     // Option/Alt+클릭: 노드 복사
                     const newNode: Node = {
@@ -740,7 +744,7 @@ export const useCanvas = ({
                     x: e.clientX - offset.x,
                     y: e.clientY - offset.y
                 };
-            } else if (isDragging && draggingNode !== null) {
+            } else if (isDragging && draggingNode !== null && !isConnecting) {
                 const rect = canvas.getBoundingClientRect();
                 const newX = (e.clientX - rect.left - offset.x) / scale;
                 const newY = (e.clientY - rect.top - offset.y) / scale;
@@ -768,9 +772,13 @@ export const useCanvas = ({
                     x: e.clientX - dragStart.current.x,
                     y: e.clientY - dragStart.current.y
                 });
-            } else if (isDragging && isConnecting) {
+            } else if (isConnecting) {
                 // 연결 모드에서 드래그 중 - 마우스 위치만 업데이트
-                setMousePosition({ x: e.clientX, y: e.clientY });
+                const rect = canvas.getBoundingClientRect();
+                setMousePosition({
+                    x: (e.clientX - rect.left - offset.x) / scale,
+                    y: (e.clientY - rect.top - offset.y) / scale
+                });
             } else if (dragBoxRef.current) {
                 // 드래그 박스 업데이트
                 dragBoxRef.current.endX = e.clientX;
@@ -781,73 +789,59 @@ export const useCanvas = ({
         };
 
         const handleMouseUp = () => {
-            if (dragBoxRef.current) {
-                // 드래그 박스 안의 노드 선택
+            if (isConnecting && connectingFrom) {
                 const rect = canvas.getBoundingClientRect();
-                const startX = (dragBoxRef.current.startX - rect.left - offset.x) / scale;
-                const startY = (dragBoxRef.current.startY - rect.top - offset.y) / scale;
-                const endX = (dragBoxRef.current.endX - rect.left - offset.x) / scale;
-                const endY = (dragBoxRef.current.endY - rect.top - offset.y) / scale;
+                const mouseX = mousePosition.x;
+                const mouseY = mousePosition.y;
+                
+                // 마우스 위치를 캔버스 좌표계로 변환
+                const x = (mouseX - rect.left - offset.x) / scale;
+                const y = (mouseY - rect.top - offset.y) / scale;
 
-                const minX = Math.min(startX, endX);
-                const maxX = Math.max(startX, endX);
-                const minY = Math.min(startY, endY);
-                const maxY = Math.max(startY, endY);
+                console.log('Mouse position:', { x, y });
+                console.log('Connecting from:', connectingFrom);
+                console.log('Current nodes:', nodes);
 
-                const selectedNodes = nodes.filter(node => 
-                    node.x >= minX && node.x <= maxX && node.y >= minY && node.y <= maxY
-                );
-
-                if (selectedNodes.length > 0) {
-                    selectedNodesRef.current = selectedNodes.map(node => node.id);
-                    if (selectedNodes.length === 1) {
-                        setSelectedNode(selectedNodes[0].id);
-                    } else {
-                        setSelectedNode(null);
-                    }
-                } else {
-                    selectedNodesRef.current = [];
-                    setSelectedNode(null);
-                }
-
-                dragBoxRef.current = null;
-            }
-
-            if (isDragging && isConnecting && connectingFrom !== null) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = (mousePosition.x - rect.left - offset.x) / scale;
-                const mouseY = (mousePosition.y - rect.top - offset.y) / scale;
-
-                // 마우스가 노드 위에 있는지 확인
-                const hoveredNode = nodes.find(node => {
-                    const dx = node.x - mouseX;
-                    const dy = node.y - mouseY;
-                    return Math.sqrt(dx * dx + dy * dy) <= 50;
+                // 마우스를 놓은 위치에 노드가 있는지 확인
+                const targetNode = nodes.find(node => {
+                    if (node.id === connectingFrom) return false; // 자기 자신과는 연결 안됨
+                    const dx = node.x - x;
+                    const dy = node.y - y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    console.log('Checking node:', node.id, 'at position:', { x: node.x, y: node.y }, 'distance:', distance);
+                    return distance <= 50;
                 });
 
-                if (hoveredNode && hoveredNode.id !== connectingFrom) {
-                    // 노드 위에 있을 때 연결 완료
-                    const linkExists = links.some(link =>
-                        (link.from === connectingFrom && link.to === hoveredNode.id) ||
-                        (link.from === hoveredNode.id && link.to === connectingFrom)
+                if (targetNode) {
+                    console.log('Found target node:', targetNode.id);
+                    // 이미 존재하는 링크인지 확인
+                    const linkExists = links.some(link => 
+                        (link.from === connectingFrom && link.to === targetNode.id) ||
+                        (link.from === targetNode.id && link.to === connectingFrom)
                     );
 
                     if (!linkExists) {
-                        setLinks([...links, { from: connectingFrom, to: hoveredNode.id }]);
+                        console.log('Creating new link');
+                        // 새로운 링크 생성
+                        const newLink: Link = {
+                            id: `link-${Date.now()}`,
+                            from: connectingFrom,
+                            to: targetNode.id
+                        };
+                        setLinks([...links, newLink]);
+                    } else {
+                        console.log('Link already exists');
                     }
+                } else {
+                    console.log('No target node found');
                 }
             }
 
             setIsDragging(false);
             setDraggingNode(null);
-            selectedGroupRef.current = null;
-            if (isConnecting) {
-                setIsConnecting(false);
-                setConnectingFrom(null);
-                setSelectedNode(null);
-            }
-            canvas.style.cursor = 'default';
-            isDraggingGroupRef.current = false;
+            setIsConnecting(false);
+            setConnectingFrom(null);
+            dragBoxRef.current = null;
         };
 
         // 휠 이벤트 처리
