@@ -1,7 +1,7 @@
 # StarField
 
 ## Next.JS(React) 기반 프로젝트
-> StartField 웹 서비스 개발
+> StartField 웹 서비스 개발(중단)
 >
 > 2025.03.26 ~
 
