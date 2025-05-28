@@ -1,5 +1,5 @@
 # StarField
-> AI GUI TOOL
+> AI GUI TOOL Project
 
 ## Next.JS(React) 기반 프로젝트
 > StartField 웹 서비스 개발(중단)
